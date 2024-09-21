@@ -159,6 +159,11 @@ typedef union Fsr3UpscalerSecondaryUnion {
     Fsr3UpscalerGenerateReactiveConstants2  autogenReactive;
 } Fsr3UpscalerSecondaryUnion;
 
+FfxConstantBuffer globalFsr3UpscalerConstantBuffers[4] = {{sizeof(Fsr3UpscalerConstants) / sizeof(uint32_t)},
+                                                          {sizeof(Fsr3UpscalerSpdConstants) / sizeof(uint32_t)},
+                                                          {sizeof(Fsr3UpscalerRcasConstants) / sizeof(uint32_t)},
+                                                          {sizeof(Fsr3UpscalerGenerateReactiveConstants) / sizeof(uint32_t)}};
+
 // Lanczos
 static float lanczos2(float value)
 {
@@ -1065,9 +1070,9 @@ static FfxErrorCode fsr3upscalerDispatch(FfxFsr3UpscalerContext_Private* context
     FsrRcasCon(rcasConsts.rcasConfig, sharpenessRemapped);
 
     // initialize constantBuffers data
-    context->contextDescription.backendInterface.fpStageConstantBufferDataFunc(&context->contextDescription.backendInterface, &context->constants,        sizeof(context->constants),        &context->constantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_FSR3UPSCALER]);
-    context->contextDescription.backendInterface.fpStageConstantBufferDataFunc(&context->contextDescription.backendInterface, &luminancePyramidConstants, sizeof(luminancePyramidConstants), &context->constantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_SPD]);
-    context->contextDescription.backendInterface.fpStageConstantBufferDataFunc(&context->contextDescription.backendInterface, &rcasConsts,                sizeof(rcasConsts),                &context->constantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_RCAS]);
+    memcpy(&globalFsr3UpscalerConstantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_FSR3UPSCALER].data,        &context->constants,        globalFsr3UpscalerConstantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_FSR3UPSCALER].num32BitEntries * sizeof(uint32_t));
+    memcpy(&globalFsr3UpscalerConstantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_SPD].data,         &luminancePyramidConstants, globalFsr3UpscalerConstantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_SPD].num32BitEntries * sizeof(uint32_t));
+    memcpy(&globalFsr3UpscalerConstantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_RCAS].data,        &rcasConsts,                globalFsr3UpscalerConstantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_RCAS].num32BitEntries * sizeof(uint32_t));
 
     scheduleDispatch(context, params, &context->pipelinePrepareInputs, dispatchSrcX, dispatchSrcY);
     scheduleDispatch(context, params, &context->pipelineLumaPyramid, dispatchThreadGroupCountXY[0], dispatchThreadGroupCountXY[1]);
@@ -1339,7 +1344,9 @@ FfxErrorCode ffxFsr3UpscalerContextGenerateReactiveMask(FfxFsr3UpscalerContext* 
     genReactiveConsts.binaryValue = params->binaryValue;
     genReactiveConsts.flags = params->flags;
 
-    contextPrivate->contextDescription.backendInterface.fpStageConstantBufferDataFunc(&contextPrivate->contextDescription.backendInterface, &genReactiveConsts, sizeof(genReactiveConsts), &contextPrivate->constantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_GENREACTIVE]);
+    memcpy(&globalFsr3UpscalerConstantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_GENREACTIVE].data,
+           &genReactiveConsts,
+           globalFsr3UpscalerConstantBuffers[FFX_FSR3UPSCALER_CONSTANTBUFFER_IDENTIFIER_GENREACTIVE].num32BitEntries * sizeof(uint32_t));
 
     for (uint32_t currentRootConstantIndex = 0; currentRootConstantIndex < pipeline->constCount; ++currentRootConstantIndex)
     {
