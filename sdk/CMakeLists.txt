@@ -234,8 +234,10 @@ add_subdirectory(${FFX_COMPONENTS_PATH}/classifier)
 add_subdirectory(${FFX_COMPONENTS_PATH}/breadcrumbs)
 
 # Add appropriate graphics backend if requested
-if(FFX_API_BACKEND STREQUAL DX12_X64)
-	add_subdirectory(${FFX_LIB_PATH}/pix)
+if(FFX_API_DX11)
+    add_subdirectory(${FFX_SRC_BACKENDS_PATH}/dx11)
+endif()
+if(FFX_API_DX12)
     add_subdirectory(${FFX_SRC_BACKENDS_PATH}/dx12)
 endif()
 

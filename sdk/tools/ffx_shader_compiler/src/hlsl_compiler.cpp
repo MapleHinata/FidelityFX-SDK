@@ -131,22 +131,26 @@ struct FxcCustomIncludeHandler : public ID3DInclude
         if (!dependentFilename.empty())
             dependencies.insert(dependentFilename.generic_string());
 
-        if (fp)
-        {
-            fseek(fp, 0, SEEK_END);
-            *pBytes = ftell(fp);
-            fseek(fp, 0, SEEK_SET);
+            if (fp)
+            {
+                dependencies.insert(filename.generic_string());
 
-            buffer.resize(*pBytes);
-            fread(buffer.data(), *pBytes, 1, fp);
-            fclose(fp);
+                fseek(fp, 0, SEEK_END);
+                *pBytes = ftell(fp);
+                fseek(fp, 0, SEEK_SET);
 
-            *ppData = buffer.data();
+                buffer.resize(*pBytes);
+                fread(buffer.data(), *pBytes, 1, fp);
+                fclose(fp);
 
-            return S_OK;
+                *ppData = buffer.data();
+
+                result = S_OK;
+                break;
+            }
         }
 
-        return E_FAIL;
+        return result;
     }
 
     COM_DECLSPEC_NOTHROW HRESULT __stdcall Close(LPCVOID pData)
@@ -573,8 +577,12 @@ bool HLSLCompiler::CompileFXC(Permutation&                    permutation,
     // Setup compiler args.
     // ------------------------------------------------------------------------------------------------
     std::vector<std::string> strMacros = {};
+    std::unordered_set<fs::path>  includes  = {};
     std::vector<D3D_SHADER_MACRO> macros = {};
     strMacros.reserve(arguments.size());
+    includes.reserve(arguments.size());
+    fs::path sourcePath = permutation.sourcePath;
+    includes.insert(fs::absolute(sourcePath.remove_filename()));
     macros.reserve(arguments.size());
 
     const char* entryPoint = nullptr;
@@ -637,6 +645,11 @@ bool HLSLCompiler::CompileFXC(Permutation&                    permutation,
                 strMacros.push_back("");
             }
             macros.push_back({ strMacros[strMacros.size() - 2].c_str(), strMacros[strMacros.size() - 1].c_str() });
+        }
+        if (arguments[i] == "-I")
+        {
+            const std::string& arg = arguments[++i];
+            includes.insert(fs::absolute(arg));
         }
     }
     macros.push_back({ nullptr, nullptr });
