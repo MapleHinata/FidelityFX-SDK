@@ -34,7 +34,7 @@ if not exist build\ (
 	mkdir build 
 )
 cd build
-cmake -A x64 .. -DFFX_API_CUSTOM=OFF -DFFX_ALL=ON -DFFX_AUTO_COMPILE_SHADERS=1 %*
+cmake -A x64 .. -DFFX_API_CUSTOM=OFF -DFFX_API_VK=OFF -DFFX_API_DX12=ON -DFFX_ALL=OFF -DFFX_ALL=OFF -DFFX_API_DX11=ON -DFFX_FSR=ON -DFFX_AUTO_COMPILE_SHADERS=1 %*
 cmake --build ./ --config Debug --parallel 4 -- /p:CL_MPcount=16
 cmake --build ./ --config Release --parallel 4 -- /p:CL_MPcount=16
 cmake --build ./ --config RelWithDebInfo --parallel 4 -- /p:CL_MPcount=16

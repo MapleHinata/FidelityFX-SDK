@@ -40,7 +40,7 @@
 /// A define for abstracting compute memory barriers between shading languages.
 ///
 /// @ingroup HLSLCore
-#define FFX_GROUP_MEMORY_BARRIER() GroupMemoryBarrierWithGroupSync()
+#define FFX_GROUP_MEMORY_BARRIER GroupMemoryBarrierWithGroupSync
 
 /// A define for abstracting compute atomic additions between shading languages.
 ///

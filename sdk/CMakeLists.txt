@@ -24,7 +24,7 @@ cmake_minimum_required(VERSION 3.17)
 
 # Set configuration types based on what we are building for
 if (NOT FFX_API_CUSTOM)
-	message(STATUS "Building FidelityFX SDK with DX12 & VK backends")
+	message(STATUS "Building FidelityFX SDK with DX11 & DX12 & VK backends")
 	set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
 	set(CMAKE_DEBUG_POSTFIX d)
 	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -36,7 +36,7 @@ endif()
 if (MSVC)
     set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /W3")
 endif()
-
+    option (FFX_API_DX11 "Build FidelityFX DX11 backend" ON)
 	option (FFX_API_DX12 "Build FidelityFX DX12 backend" ON)
 	option (FFX_API_VK "Build FidelityFX Vulkan backend" ON)
 endif()
@@ -178,6 +178,9 @@ add_subdirectory(${FFX_COMPONENTS_PATH}/sssr)
 add_subdirectory(${FFX_COMPONENTS_PATH}/classifier)
 
 # Add appropriate graphics backend if requested
+if(FFX_API_DX11)
+    add_subdirectory(${FFX_SRC_BACKENDS_PATH}/dx11)
+endif()
 if(FFX_API_DX12)
     add_subdirectory(${FFX_SRC_BACKENDS_PATH}/dx12)
 endif()

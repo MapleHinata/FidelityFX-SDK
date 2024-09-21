@@ -67,32 +67,35 @@ struct FxcCustomIncludeHandler : public ID3DInclude
 {
     HRESULT Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes)
     {
-        fs::path sourceFolder = sourcePath;
-        sourceFolder.remove_filename();
+        HRESULT result = E_FAIL;
 
-        fs::path filename = fs::relative(fs::absolute(sourceFolder / pFileName));
-
-        dependencies.insert(filename.generic_string());
-
-        FILE* fp;
-        _wfopen_s(&fp, UTF8ToWChar(filename.string()).c_str(), L"rb");
-
-        if (fp)
+        for (const fs::path& sourcePath : sourcePaths)
         {
-            fseek(fp, 0, SEEK_END);
-            *pBytes = ftell(fp);
-            fseek(fp, 0, SEEK_SET);
+            fs::path filename = fs::relative(fs::absolute(sourcePath / pFileName));
 
-            buffer.resize(*pBytes);
-            fread(buffer.data(), *pBytes, 1, fp);
-            fclose(fp);
+            FILE* fp;
+            _wfopen_s(&fp, UTF8ToWChar(filename.string()).c_str(), L"rb");
 
-            *ppData = buffer.data();
+            if (fp)
+            {
+                dependencies.insert(filename.generic_string());
 
-            return S_OK;
+                fseek(fp, 0, SEEK_END);
+                *pBytes = ftell(fp);
+                fseek(fp, 0, SEEK_SET);
+
+                buffer.resize(*pBytes);
+                fread(buffer.data(), *pBytes, 1, fp);
+                fclose(fp);
+
+                *ppData = buffer.data();
+
+                result = S_OK;
+                break;
+            }
         }
 
-        return E_FAIL;
+        return result;
     }
 
     HRESULT __stdcall Close(LPCVOID pData)
@@ -100,7 +103,7 @@ struct FxcCustomIncludeHandler : public ID3DInclude
         return S_OK;
     }
 
-    fs::path sourcePath;
+    std::unordered_set<fs::path>    sourcePaths;
     std::unordered_set<std::string> dependencies;
     std::vector<char*> buffer;
 };
@@ -406,8 +409,12 @@ bool HLSLCompiler::CompileFXC(Permutation&                    permutation,
     // Setup compiler args.
     // ------------------------------------------------------------------------------------------------
     std::vector<std::string> strMacros = {};
+    std::unordered_set<fs::path>  includes  = {};
     std::vector<D3D_SHADER_MACRO> macros = {};
     strMacros.reserve(arguments.size());
+    includes.reserve(arguments.size());
+    fs::path sourcePath = permutation.sourcePath;
+    includes.insert(fs::absolute(sourcePath.remove_filename()));
     macros.reserve(arguments.size());
 
     const char* entryPoint = nullptr;
@@ -465,13 +472,18 @@ bool HLSLCompiler::CompileFXC(Permutation&                    permutation,
             }
             macros.push_back({ strMacros[strMacros.size() - 2].c_str(), strMacros[strMacros.size() - 1].c_str() });
         }
+        if (arguments[i] == "-I")
+        {
+            const std::string& arg = arguments[++i];
+            includes.insert(fs::absolute(arg));
+        }
     }
     macros.push_back({ nullptr, nullptr });
 
     CComPtr<ID3DBlob> pError = nullptr;
 
     FxcCustomIncludeHandler customIncludeHandler;
-    customIncludeHandler.sourcePath = permutation.sourcePath;
+    customIncludeHandler.sourcePaths = includes;
 
     HRESULT hr = m_FxcD3DCompile(m_Source.c_str(),
                                  m_Source.size(),
