@@ -125,7 +125,7 @@ FfxFloat32x4 SpdReduce4(FfxFloat32x4 v0, FfxFloat32x4 v1, FfxFloat32x4 v2, FfxFl
 
 void ffxSpdWorkgroupShuffleBarrier()
 {
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 }
 
 // Only last active workgroup should proceed

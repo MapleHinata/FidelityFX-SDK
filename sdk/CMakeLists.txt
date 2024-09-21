@@ -34,6 +34,7 @@ message(STATUS "FFX_API_BACKEND is ${FFX_API_BACKEND}")
 
 if(FFX_API_BACKEND STREQUAL VK_X64 OR 
    FFX_API_BACKEND STREQUAL DX12_X64 OR 
+   FFX_API_BACKEND STREQUAL DX11_X64 OR 
    FFX_API_BACKEND STREQUAL GDK_DESKTOP_X64 OR 
    FFX_API_BACKEND STREQUAL GDK_SCARLETT_X64)
 	set(FFX_CUSTOM_API OFF)
@@ -54,7 +55,9 @@ if (NOT FFX_CUSTOM_API)
 	
 	# If we are NOT building the GDK, queue up DX12/VK solution for building
 	if (NOT FFX_GDK)
-		if (FFX_API_BACKEND STREQUAL DX12_X64)
+    	if (FFX_API_BACKEND STREQUAL DX11_X64)
+			message(STATUS "Building FidelityFX SDK with DX11 backend")
+		elseif (FFX_API_BACKEND STREQUAL DX12_X64)
 			message(STATUS "Building FidelityFX SDK with DX12 backend")
 		elseif(FFX_API_BACKEND STREQUAL VK_X64)
 			message(STATUS "Building FidelityFX SDK with VK backend")
@@ -139,10 +142,14 @@ else()
 
 endif()
 
-if (FFX_FSR3)
+if (FFX_FSR3 AND NOT FFX_API_BACKEND STREQUAL DX11_X64)
 	option(FFX_FSR3UPSCALER "Build FFX FSR3 Upscaler API" ON)
 	option(FFX_FI "Build FFX Frame Interpolation API" ON)
 	option(FFX_OF "Build FFX Optical Flow API" ON)
+endif()
+
+if (FFX_FSR3 AND FFX_API_BACKEND STREQUAL DX11_X64)
+	option(FFX_FSR3UPSCALER "Build FFX FSR3 Upscaler API" ON)
 endif()
 
 # Add requred compile definitions
@@ -196,6 +203,9 @@ set(FFX_PUBLIC_SHADER_SOURCES
 if (FFX_API_BACKEND STREQUAL DX12_X64)
 	message(STATUS "Creating project FidelityFX-SDK_DX12_x64")
 	project (FidelityFX-SDK_DX12_x64)
+elseif (FFX_API_BACKEND STREQUAL DX11_X64)
+	message(STATUS "Creating project FidelityFX-SDK_DX11_x64")
+	project (FidelityFX-SDK_DX11_x64)
 elseif (FFX_API_BACKEND STREQUAL VK_X64)
 	message(STATUS "Creating project FidelityFX-SDK_VK_x64")
 	project (FidelityFX-SDK_VK_x64)

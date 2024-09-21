@@ -125,6 +125,7 @@ SampleSet GetCurrentLumaBilinearSamples(FfxFloat32x2 fUv)
 
     SampleSet fSet;
 
+    FFX_UNROLL
     for (FfxInt32 iSampleIndex = 0; iSampleIndex < SHADING_CHANGE_SET_SIZE; iSampleIndex++) {
         const FfxInt32x2 iSamplePos = ClampLoad(iBasePos, iSampleOffsets[iSampleIndex], RenderSize());
         fSet.fSamples[iSampleIndex] = LoadCurrentLuma(iSamplePos) * Exposure();
@@ -143,7 +144,7 @@ struct PreviousLumaBilinearSamplesData
 
 PreviousLumaBilinearSamplesData GetPreviousLumaBilinearSamples(FfxFloat32x2 fUv, FfxFloat32x2 fMotionVector)
 {
-    PreviousLumaBilinearSamplesData data;
+    PreviousLumaBilinearSamplesData data = (PreviousLumaBilinearSamplesData)0;
 
     const FfxFloat32x2 fUvJittered = fUv + PreviousFrameJitter() / PreviousFrameRenderSize();
     const FfxFloat32x2 fReprojectedUv = fUvJittered + fMotionVector;
@@ -154,6 +155,7 @@ PreviousLumaBilinearSamplesData GetPreviousLumaBilinearSamples(FfxFloat32x2 fUv,
 
         const FfxInt32x2 iBasePos = FfxInt32x2(floor(fReprojectedUv * PreviousFrameRenderSize()));
 
+        FFX_UNROLL
         for (FfxInt32 iSampleIndex = 0; iSampleIndex < SHADING_CHANGE_SET_SIZE; iSampleIndex++) {
 
             const FfxInt32x2 iSamplePos = ClampLoad(iBasePos, iSampleOffsets[iSampleIndex], PreviousFrameRenderSize());

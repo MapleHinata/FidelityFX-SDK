@@ -43,11 +43,11 @@ FfxFloat32x2 GetMotionVector(FfxInt32x2 iPxHrPos, FfxFloat32x2 fHrUv)
     return fDilatedMotionVector;
 }
 
-void ComputeReprojectedUVs(FFX_PARAMETER_INOUT AccumulationPassCommonParams params)
+void ComputeReprojectedUVs(const AccumulationPassCommonParams params, FFX_PARAMETER_OUT FfxFloat32x2 fReprojectedHrUv, FFX_PARAMETER_OUT FfxBoolean bIsExistingSample)
 {
-    params.fReprojectedHrUv = params.fHrUv + params.fMotionVector;
+    fReprojectedHrUv = params.fHrUv + params.fMotionVector;
 
-    params.bIsExistingSample = IsUvInside(params.fReprojectedHrUv);
+    bIsExistingSample = IsUvInside(fReprojectedHrUv);
 }
 
 void ReprojectHistoryColor(const AccumulationPassCommonParams params, FFX_PARAMETER_INOUT AccumulationPassData data)

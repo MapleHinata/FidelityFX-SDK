@@ -64,7 +64,7 @@
 FFX_PREFER_WAVE64
 FFX_FSR3UPSCALER_NUM_THREADS
 FFX_FSR3UPSCALER_EMBED_ROOTSIG_CONTENT
-void CS(int2 iDispatchThreadId : SV_DispatchThreadID)
+void CS(uint2 iDispatchThreadId : SV_DispatchThreadID)
 {
     Accumulate(iDispatchThreadId);
 }
