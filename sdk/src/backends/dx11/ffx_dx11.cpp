@@ -107,7 +107,7 @@ FFX_API size_t ffxGetScratchMemorySizeDX11(size_t maxContexts)
 }
 
 // Create a FfxDevice from a ID3D11Device*
-FfxDevice ffxGetDeviceDX11_Fsr31(ID3D11Device* dx11Device)
+FfxDevice ffxGetDeviceDX11(ID3D11Device* dx11Device)
 {
     FFX_ASSERT(NULL != dx11Device);
     return reinterpret_cast<FfxDevice>(dx11Device);
@@ -300,7 +300,7 @@ static DXGI_FORMAT convertFormatSrv(DXGI_FORMAT format)
     }
 }
 
-DXGI_FORMAT ffxGetDX11FormatFromSurfaceFormat_Fsr31(FfxSurfaceFormat surfaceFormat)
+DXGI_FORMAT ffxGetDX11FormatFromSurfaceFormat(FfxSurfaceFormat surfaceFormat)
 {
     switch (surfaceFormat) {
 
@@ -361,7 +361,7 @@ DXGI_FORMAT ffxGetDX11FormatFromSurfaceFormat_Fsr31(FfxSurfaceFormat surfaceForm
 
 DXGI_FORMAT patchDxgiFormatWithFfxUsage(DXGI_FORMAT dxResFmt, FfxSurfaceFormat ffxFmt)
 {
-    DXGI_FORMAT fromFfx = ffxGetDX11FormatFromSurfaceFormat_Fsr31(ffxFmt);
+    DXGI_FORMAT fromFfx = ffxGetDX11FormatFromSurfaceFormat(ffxFmt);
     DXGI_FORMAT fmt = dxResFmt;
 
     switch (fmt)
@@ -644,7 +644,7 @@ FfxResourceDescription GetFfxResourceDescriptionDX11(ID3D11Resource* pResource)
     return resourceDescription;
 }
 
-ID3D11Resource* getDX11ResourcePtr_Fsr31(BackendContext_DX11* backendContext, int32_t resourceIndex)
+ID3D11Resource* getDX11ResourcePtr(BackendContext_DX11* backendContext, int32_t resourceIndex)
 {
     FFX_ASSERT(NULL != backendContext);
     return reinterpret_cast<ID3D11Resource*>(backendContext->pResources[resourceIndex].resourcePtr);
@@ -897,7 +897,7 @@ FfxErrorCode CreateResourceDX11(
         break;
 
     case FFX_RESOURCE_TYPE_TEXTURE1D:
-        dx11Texture1DDescription.Format = ffxGetDX11FormatFromSurfaceFormat_Fsr31(createResourceDescription->resourceDescription.format);
+        dx11Texture1DDescription.Format = ffxGetDX11FormatFromSurfaceFormat(createResourceDescription->resourceDescription.format);
         dx11Texture1DDescription.Width = createResourceDescription->resourceDescription.width;
         dx11Texture1DDescription.ArraySize = createResourceDescription->resourceDescription.depth;
         dx11Texture1DDescription.MipLevels = createResourceDescription->resourceDescription.mipCount;
@@ -908,7 +908,7 @@ FfxErrorCode CreateResourceDX11(
     case FFX_RESOURCE_TYPE_TEXTURE_CUBE:
         dx11Texture2DDescription.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
     case FFX_RESOURCE_TYPE_TEXTURE2D:
-        dx11Texture2DDescription.Format = ffxGetDX11FormatFromSurfaceFormat_Fsr31(createResourceDescription->resourceDescription.format);
+        dx11Texture2DDescription.Format = ffxGetDX11FormatFromSurfaceFormat(createResourceDescription->resourceDescription.format);
         dx11Texture2DDescription.Width = createResourceDescription->resourceDescription.width;
         dx11Texture2DDescription.Height = createResourceDescription->resourceDescription.height;
         dx11Texture2DDescription.ArraySize = createResourceDescription->resourceDescription.depth;
@@ -919,7 +919,7 @@ FfxErrorCode CreateResourceDX11(
         break;
 
     case FFX_RESOURCE_TYPE_TEXTURE3D:
-        dx11Texture3DDescription.Format = ffxGetDX11FormatFromSurfaceFormat_Fsr31(createResourceDescription->resourceDescription.format);
+        dx11Texture3DDescription.Format = ffxGetDX11FormatFromSurfaceFormat(createResourceDescription->resourceDescription.format);
         dx11Texture3DDescription.Width = createResourceDescription->resourceDescription.width;
         dx11Texture3DDescription.Height = createResourceDescription->resourceDescription.height;
         dx11Texture3DDescription.Depth = createResourceDescription->resourceDescription.depth;
@@ -1851,8 +1851,8 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX11* backendContext, Ff
 
 static FfxErrorCode executeGpuJobCopy(BackendContext_DX11* backendContext, FfxGpuJobDescription* job, ID3D11Device* dx11Device, ID3D11DeviceContext* dx11DeviceContext)
 {
-    ID3D11Resource* dx11ResourceSrc = getDX11ResourcePtr_Fsr31(backendContext, job->copyJobDescriptor.src.internalIndex);
-    ID3D11Resource* dx11ResourceDst = getDX11ResourcePtr_Fsr31(backendContext, job->copyJobDescriptor.dst.internalIndex);
+    ID3D11Resource* dx11ResourceSrc = getDX11ResourcePtr(backendContext, job->copyJobDescriptor.src.internalIndex);
+    ID3D11Resource* dx11ResourceDst = getDX11ResourcePtr(backendContext, job->copyJobDescriptor.dst.internalIndex);
 
     dx11DeviceContext->CopyResource(dx11ResourceDst, dx11ResourceSrc);
 
