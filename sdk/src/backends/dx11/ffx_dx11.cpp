@@ -30,6 +30,8 @@
 #include <codecvt>  // convert string to wstring
 #include <mutex>
 
+extern "C" void CalculateDXBCChecksum(const DWORD* pData, DWORD dwSize, DWORD dwHash[4]);
+
 // DX11 prototypes for functions in the backend interface
 FfxUInt32 GetSDKVersionDX11(FfxInterface* backendInterface);
 FfxErrorCode CreateBackendContextDX11(FfxInterface* backendInterface, FfxUInt32* effectContextId);
@@ -1535,9 +1537,41 @@ FfxErrorCode CreatePipelineDX11(
             wcscpy_s(outPipeline->constantBufferBindings[cbIndex].name, converter.from_bytes(shaderBlob.boundConstantBufferNames[cbIndex]).c_str());
         }
 
+        // patch GroupMemoryBarrier to GroupMemoryBarrierWithGroupSync
+        DWORD* data = new DWORD[shaderBlob.size / sizeof(DWORD)];
+        if (data == nullptr)
+            return FFX_ERROR_INSUFFICIENT_MEMORY;
+        memcpy(data, shaderBlob.data, shaderBlob.size);
+        for (uint32_t i = 0; i < shaderBlob.size / sizeof(DWORD); ++i)
+        {
+            if (data[i] == MAKEFOURCC('S','H','E','X'))
+            {
+                DWORD* shex = &data[i];
+                DWORD count = data[i + 1];
+                bool hash = false;
+                for (uint32_t i = 0; i < count / sizeof(DWORD); ++i)
+                {
+                    if (shex[i] == 0x010010BE)
+                    {
+                        shex[i] = 0x010018BE;
+                        hash = true;
+                    }
+                }
+                if (hash)
+                {
+                    CalculateDXBCChecksum(data, shaderBlob.size, &data[1]);
+                }
+                break;
+            }
+        }
+
         // create the PSO
-        if (FAILED(dx11Device->CreateComputeShader(shaderBlob.data, shaderBlob.size, nullptr, (ID3D11ComputeShader**)&outPipeline->pipeline)))
+        if (FAILED(dx11Device->CreateComputeShader(data, shaderBlob.size, nullptr, (ID3D11ComputeShader**)&outPipeline->pipeline)))
+        {
+            delete[] data;
             return FFX_ERROR_BACKEND_API_ERROR;
+        }
+        delete[] data;
 
         // Set the pipeline name
         SetNameDX11(reinterpret_cast<ID3D11ComputeShader*>(outPipeline->pipeline), pipelineDescription->name);
@@ -1696,7 +1730,14 @@ static FfxErrorCode executeGpuJobCompute(BackendContext_DX11* backendContext, Ff
 
                     // Where to bind it
                     uint32_t currentSrvResourceIndex;
-                    currentSrvResourceIndex = job->computeJobDescriptor.pipeline.srvTextureBindings[currPipelineSrvIndex].slotIndex;
+                    if (bindNum >= 1)
+                    {
+                        currentSrvResourceIndex = job->computeJobDescriptor.pipeline.srvTextureBindings[currentPipelineSrvIndex].slotIndex + bindNum;
+                    }
+                    else
+                    {
+                        currentSrvResourceIndex = job->computeJobDescriptor.pipeline.srvTextureBindings[currPipelineSrvIndex].slotIndex;
+                    }
 
                     dx11DeviceContext->CSSetShaderResources(currentSrvResourceIndex, 1, &srvPtr);
 
