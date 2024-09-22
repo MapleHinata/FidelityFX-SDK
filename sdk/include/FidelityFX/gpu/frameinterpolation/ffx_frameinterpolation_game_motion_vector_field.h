@@ -97,14 +97,14 @@ void computeGameFieldMvs(FfxInt32x2 iPxPos)
                 const FfxInt32x2 iOffset = bilinearInfo.iOffsets[iSampleIndex];
                 const FfxInt32x2 iSamplePos = bilinearInfo.iBasePos + iOffset;
 
-                bWriteSecondary &= IsOnScreen(iSamplePos, RenderSize());
+                bWriteSecondary = bWriteSecondary & IsOnScreen(iSamplePos, RenderSize());
 
                 if (bWriteSecondary)
                 {
                     const FfxUInt32 uExistingVectorFieldEntry = UpdateGameMotionVectorFieldEx(iSamplePos, packedVectorSecondary);
 
                     uNumPrimaryHits += PackedVectorFieldEntryIsPrimary(uExistingVectorFieldEntry);
-                    bWriteSecondary &= (uNumPrimaryHits <= 3);
+                    bWriteSecondary = bWriteSecondary & (uNumPrimaryHits <= 3);
                 }
             }
         }

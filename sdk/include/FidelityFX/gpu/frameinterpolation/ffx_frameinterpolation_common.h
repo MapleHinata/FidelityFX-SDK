@@ -271,6 +271,9 @@ void UnpackVectorFieldEntries(FfxUInt32x2 packed, out VectorFieldEntry vfElement
     vfElement.fMotionVector.x = f16tof32(packed.x);
     vfElement.fMotionVector.y = f16tof32(packed.y);
     vfElement.bInPainted      = false;
+    vfElement.fVelocity      = 0.0f;
+    vfElement.bNegOutside    = false;
+    vfElement.bPosOutside    = false;
 }
 
 // 

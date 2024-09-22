@@ -205,8 +205,16 @@ file(GLOB PRIVATE_SOURCE
 
 if (FFX_FSR OR FFX_ALL)
 	set(FFX_FSR_PRIVATE_SOURCE
+		"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/ffx_fsr1_shaderblobs.h"
+		"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/ffx_fsr1_shaderblobs.cpp"
+		"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/ffx_fsr2_shaderblobs.h"
+		"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/ffx_fsr2_shaderblobs.cpp"
 		"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/ffx_fsr3upscaler_shaderblobs.h"
-		"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/ffx_fsr3upscaler_shaderblobs.cpp")
+		"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/ffx_fsr3upscaler_shaderblobs.cpp"
+		"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/ffx_frameinterpolation_shaderblobs.h"
+		"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/ffx_frameinterpolation_shaderblobs.cpp"
+		"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/ffx_opticalflow_shaderblobs.h"
+		"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/ffx_opticalflow_shaderblobs.cpp")
 	list(APPEND PRIVATE_SOURCE ${FFX_FSR_PRIVATE_SOURCE})
 endif()
 
@@ -354,23 +362,23 @@ if (FFX_FSR OR FFX_ALL)
 
     # FFX_FSR3 is currently only defined in DX11 native backend
     target_compile_definitions(ffx_backend_dx11_${FFX_PLATFORM_NAME} PRIVATE FFX_FSR3)
-	#include (CMakeShadersFrameinterpolation.txt)
-	#include (CMakeShadersOpticalflow.txt)
+	include (CMakeShadersFrameinterpolation.txt)
+	include (CMakeShadersOpticalflow.txt)
 	include (CMakeShadersFSR3Upscaler.txt)
-	#include (CMakeShadersFSR2.txt)
-	#include (CMakeShadersFSR1.txt)
+	include (CMakeShadersFSR2.txt)
+	include (CMakeShadersFSR1.txt)
 
 #	ADD_CUSTOM_TARGET(copy-shaders-FSR2 ALL
 #		COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/src/backends/dx11/shaders/fsr2 ${CMAKE_BINARY_DIR}/../bin/ffx_sdk/passes_fsr2)
-	ADD_CUSTOM_TARGET(copy-shaders-FSR3 ALL
-		COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/src/backends/dx11/shaders/fsr3upscaler ${CMAKE_BINARY_DIR}/../bin/ffx_sdk/passes_fsr3upscaler)
+#	ADD_CUSTOM_TARGET(copy-shaders-FSR3 ALL
+#		COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/src/backends/dx11/shaders/fsr3upscaler ${CMAKE_BINARY_DIR}/../bin/ffx_sdk/passes_fsr3upscaler)
 #	ADD_CUSTOM_TARGET(copy-shaders-OF ALL
 #		COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/src/backends/dx11/shaders/opticalflow ${CMAKE_BINARY_DIR}/../bin/ffx_sdk/passes_opticalflow)
 #	ADD_CUSTOM_TARGET(copy-shaders-FI ALL
 #		COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/src/backends/dx11/shaders/frameinterpolation ${CMAKE_BINARY_DIR}/../bin/ffx_sdk/passes_frameinterpolation)
 
 #	add_dependencies(copy-shaders-FSR2 ffx_backend_dx11_${FFX_PLATFORM_NAME})
-	add_dependencies(copy-shaders-FSR3 ffx_backend_dx11_${FFX_PLATFORM_NAME})
+#	add_dependencies(copy-shaders-FSR3 ffx_backend_dx11_${FFX_PLATFORM_NAME})
 #	add_dependencies(copy-shaders-OF ffx_backend_dx11_${FFX_PLATFORM_NAME})
 #	add_dependencies(copy-shaders-FI ffx_backend_dx11_${FFX_PLATFORM_NAME})
 endif()
