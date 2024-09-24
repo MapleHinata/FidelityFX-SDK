@@ -59,7 +59,6 @@ FfxErrorCode ffxFsr3ContextCreate(FfxFsr3Context* context, FfxFsr3ContextDescrip
 
         contextPrivate->description = *contextDescription;
 
-        contextPrivate->backendInterfaceSharedResources = contextDescription->backendInterfaceSharedResources;
         contextPrivate->backendInterfaceUpscaling = contextDescription->backendInterfaceUpscaling;
         contextPrivate->backendInterfaceFrameInterpolation = contextDescription->backendInterfaceFrameInterpolation;
 
@@ -96,30 +95,30 @@ FfxErrorCode ffxFsr3ContextCreate(FfxFsr3Context* context, FfxFsr3ContextDescrip
         else
         {
             contextPrivate->backendInterfaceSharedResources = contextPrivate->backendInterfaceUpscaling;
-            contextDescription->backendInterfaceSharedResources = contextDescription->backendInterfaceUpscaling;
         }
     }
 
     // set up FSR3 Upscaler
     // ensure we're actually creating an FSR3 Upscaler context, not the creationfunction that reroutes to ffxFsr3ContextCreate
 	{
-		FfxFsr3UpscalerContextDescription upDesc = {};
-        upDesc.flags = 0;
+        FfxFsr3UpscalerContextDescription upDesc = {};
+        upDesc.flags                             = 0;
         upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_HIGH_DYNAMIC_RANGE) ? FFX_FSR3UPSCALER_ENABLE_HIGH_DYNAMIC_RANGE : 0;
-        upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS) ? FFX_FSR3UPSCALER_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS : 0;
-        upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_MOTION_VECTORS_JITTER_CANCELLATION) ? FFX_FSR3UPSCALER_ENABLE_MOTION_VECTORS_JITTER_CANCELLATION : 0;
+        upDesc.flags |=
+            (contextDescription->flags & FFX_FSR3_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS) ? FFX_FSR3UPSCALER_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS : 0;
+        upDesc.flags |=
+            (contextDescription->flags & FFX_FSR3_ENABLE_MOTION_VECTORS_JITTER_CANCELLATION) ? FFX_FSR3UPSCALER_ENABLE_MOTION_VECTORS_JITTER_CANCELLATION : 0;
         upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_DEPTH_INVERTED) ? FFX_FSR3UPSCALER_ENABLE_DEPTH_INVERTED : 0;
         upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_DEPTH_INFINITE) ? FFX_FSR3UPSCALER_ENABLE_DEPTH_INFINITE : 0;
         upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_AUTO_EXPOSURE) ? FFX_FSR3UPSCALER_ENABLE_AUTO_EXPOSURE : 0;
         upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_DYNAMIC_RESOLUTION) ? FFX_FSR3UPSCALER_ENABLE_DYNAMIC_RESOLUTION : 0;
-        upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_TEXTURE1D_USAGE) ? FFX_FSR3UPSCALER_ENABLE_TEXTURE1D_USAGE : 0;
         upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_DEBUG_CHECKING) ? FFX_FSR3UPSCALER_ENABLE_DEBUG_CHECKING : 0;
         upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_HDR_UPSCALE_SDR_FINALOUTPUT) ? FFX_FSR3UPSCALER_ENABLE_HIGH_DYNAMIC_RANGE : 0;
-        upDesc.maxRenderSize = contextDescription->maxRenderSize;
-		upDesc.maxUpscaleSize = contextDescription->upscaleOutputSize;
-		upDesc.backendInterface = contextDescription->backendInterfaceUpscaling;
-		upDesc.fpMessage = contextDescription->fpMessage;
-		FFX_VALIDATE(ffxFsr3UpscalerContextCreate(&contextPrivate->upscalerContext, &upDesc));
+        upDesc.maxRenderSize    = contextDescription->maxRenderSize;
+        upDesc.maxUpscaleSize   = contextDescription->maxUpscaleSize;
+        upDesc.backendInterface = contextDescription->backendInterfaceUpscaling;
+        upDesc.fpMessage        = contextDescription->fpMessage;
+        FFX_VALIDATE(ffxFsr3UpscalerContextCreate(&contextPrivate->upscalerContext, &upDesc));
 	}
 
     if (!contextPrivate->upscalingOnly) {
@@ -149,11 +148,6 @@ FfxErrorCode ffxFsr3ContextCreate(FfxFsr3Context* context, FfxFsr3ContextDescrip
         // set up optical flow resources
         FfxOpticalflowSharedResourceDescriptions ofResourceDescs = {};
         FFX_VALIDATE(ffxOpticalflowGetSharedResourceDescriptions(&contextPrivate->ofContext, &ofResourceDescs));
-
-        FFX_VALIDATE(contextDescription->backendInterfaceSharedResources.fpCreateResource(
-            &contextDescription->backendInterfaceSharedResources, &ofResourceDescs.opticalFlowVector, contextPrivate->effectContextIdSharedResources, &contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_OPTICAL_FLOW_VECTOR]));
-        FFX_VALIDATE(contextDescription->backendInterfaceSharedResources.fpCreateResource(
-            &contextDescription->backendInterfaceSharedResources, &ofResourceDescs.opticalFlowSCD, contextPrivate->effectContextIdSharedResources, &contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_OPTICAL_FLOW_SCD_OUTPUT]));
     }
 
     return ret;
@@ -294,6 +288,7 @@ FfxErrorCode ffxFsr3ContextDispatchUpscale(FfxFsr3Context* context, const FfxFsr
     fsr3DispatchParams.jitterOffset               = dispatchParams->jitterOffset;
     fsr3DispatchParams.motionVectorScale          = dispatchParams->motionVectorScale;
     fsr3DispatchParams.renderSize                 = dispatchParams->renderSize;
+    fsr3DispatchParams.upscaleSize                = dispatchParams->upscaleSize;
     fsr3DispatchParams.enableSharpening           = dispatchParams->enableSharpening;
     fsr3DispatchParams.sharpness                  = dispatchParams->sharpness;
     fsr3DispatchParams.frameTimeDelta             = dispatchParams->frameTimeDelta;

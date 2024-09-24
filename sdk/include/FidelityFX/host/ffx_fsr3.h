@@ -1,16 +1,17 @@
 // This file is part of the FidelityFX SDK.
-// 
-// Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+//
+// Copyright (C) 2024 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
+// of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// to use, copy, modify, merge, publish, distribute, sublicense, and /or sell
 // copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
+// furnished to do so, subject to the following conditions :
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +19,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 
 // @defgroup FSR3
 
@@ -38,12 +38,12 @@
 /// FidelityFX Super Resolution 0 minor version.
 ///
 /// @ingroup FSR3
-#define FFX_FSR3_VERSION_MINOR      (0)
+#define FFX_FSR3_VERSION_MINOR      (1)
 
 /// FidelityFX Super Resolution 0 patch version.
 ///
 /// @ingroup FSR3
-#define FFX_FSR3_VERSION_PATCH      (4)
+#define FFX_FSR3_VERSION_PATCH      (0)
 
 /// FidelityFX Super Resolution 3 context count
 ///
@@ -126,12 +126,13 @@ typedef enum FfxFsr3InitializationFlagBits {
     FFX_FSR3_ENABLE_DEPTH_INFINITE                      = (1<<4),   ///< A bit indicating that the input depth buffer data provided is using an infinite far plane.
     FFX_FSR3_ENABLE_AUTO_EXPOSURE                       = (1<<5),   ///< A bit indicating if automatic exposure should be applied to input color data.
     FFX_FSR3_ENABLE_DYNAMIC_RESOLUTION                  = (1<<6),   ///< A bit indicating that the application uses dynamic resolution scaling.
-    FFX_FSR3_ENABLE_TEXTURE1D_USAGE                     = (1<<7),   ///< A bit indicating that the backend should use 1D textures.
+    FFX_FSR3_ENABLE_TEXTURE1D_USAGE                     = (1<<7),   ///< This value is deprecated, but remains in order to aid upgrading from older versions of FSR3.
     FFX_FSR3_ENABLE_DEBUG_CHECKING                      = (1<<8),   ///< A bit indicating that the runtime should check some API values and report issues.
     FFX_FSR3_ENABLE_UPSCALING_ONLY                      = (1<<9),   ///, A bit indicating that the context will only be used for upscaling
     FFX_FSR3_ENABLE_HDR_UPSCALE_SDR_FINALOUTPUT         = (1<<10),  ///, A bit indicating if the input color data provided to UPSCALE is using a high-dynamic range, final output SDR.
     FFX_FSR3_ENABLE_SDR_UPSCALE_HDR_FINALOUTPUT         = (1<<11),  ///, A bit indicating if the input color data provided to UPSCALE is using SDR, final output is high-dynamic range.
     FFX_FSR3_ENABLE_ASYNC_WORKLOAD_SUPPORT              = (1<<12),
+    FFX_FSR3_ENABLE_INTERPOLATION_ONLY                  = (1<<13),
 } FfxFsr3InitializationFlagBits;
 
 typedef enum FfxFsr3FrameGenerationFlags
@@ -142,8 +143,7 @@ typedef enum FfxFsr3FrameGenerationFlags
 
 typedef enum FfxFsr3UpscalingFlags
 {
-    FFX_FSR3_UPSCALER_FLAG_DRAW_DEBUG_VIEW =
-        FFX_FSR3UPSCALER_DISPATCH_DRAW_DEBUG_VIEW,  ///< A bit indicating that the upscaled output resource will contain debug views with relevant information.
+    FFX_FSR3_UPSCALER_FLAG_DRAW_DEBUG_VIEW = FFX_FSR3UPSCALER_DISPATCH_DRAW_DEBUG_VIEW,  ///< A bit indicating that the upscaled output resource will contain debug views with relevant information.
 } FfxFsr3UpscalingFlags;
 
 /// A structure encapsulating the parameters required to initialize FidelityFX
@@ -153,13 +153,11 @@ typedef enum FfxFsr3UpscalingFlags
 typedef struct FfxFsr3ContextDescription {
     uint32_t                    flags;                              ///< A collection of <c><i>FfxFsr3InitializationFlagBits</i></c>.
     FfxDimensions2D             maxRenderSize;                      ///< The maximum size that rendering will be performed at.
-    FfxDimensions2D             upscaleOutputSize;                  ///< The size of the presentation resolution targeted by the upscaling process.
+    FfxDimensions2D             maxUpscaleSize;                  ///< The size of the presentation resolution targeted by the upscaling process.
     FfxDimensions2D             displaySize;                        ///< The size of the presentation resolution targeted by the frame interpolation process.
-    FfxInterface                backendInterfaceSharedResources;    ///< A set of pointers to the backend implementation for FidelityFX SDK
     FfxInterface                backendInterfaceUpscaling;          ///< A set of pointers to the backend implementation for FidelityFX SDK
     FfxInterface                backendInterfaceFrameInterpolation; ///< A set of pointers to the backend implementation for FidelityFX SDK
-    FfxFsr3UpscalerMessage      fpMessage;                          ///< A pointer to a function that can recieve messages from the runtime.
-
+    FfxFsr3UpscalerMessage      fpMessage;                          ///< A pointer to a function that can receive messages from the runtime.
     FfxSurfaceFormat            backBufferFormat;                   ///< The format of the swapchain surface
 
 } FfxFsr3ContextDescription;
