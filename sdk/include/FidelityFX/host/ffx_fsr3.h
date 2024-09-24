@@ -140,6 +140,12 @@ typedef enum FfxFsr3FrameGenerationFlags
     FFX_FSR3_FRAME_GENERATION_FLAG_DRAW_DEBUG_VIEW          = FFX_FRAMEINTERPOLATION_DISPATCH_DRAW_DEBUG_VIEW,  ///< A bit indicating that the interpolated output resource will contain debug views with relevant information.
 } FfxFsr3FrameGenerationFlags;
 
+typedef enum FfxFsr3UpscalingFlags
+{
+    FFX_FSR3_UPSCALER_FLAG_DRAW_DEBUG_VIEW =
+        FFX_FSR3UPSCALER_DISPATCH_DRAW_DEBUG_VIEW,  ///< A bit indicating that the upscaled output resource will contain debug views with relevant information.
+} FfxFsr3UpscalingFlags;
+
 /// A structure encapsulating the parameters required to initialize FidelityFX
 /// Super Resolution 3 upscaling.
 ///
@@ -175,6 +181,7 @@ typedef struct FfxFsr3DispatchUpscaleDescription {
     FfxFloatCoords2D            jitterOffset;                       ///< The subpixel jitter offset applied to the camera.
     FfxFloatCoords2D            motionVectorScale;                  ///< The scale factor to apply to motion vectors.
     FfxDimensions2D             renderSize;                         ///< The resolution that was used for rendering the input resources.
+    FfxDimensions2D             upscaleSize;                        ///< The resolution that the upscaler will output.
     bool                        enableSharpening;                   ///< Enable an additional sharpening pass.
     float                       sharpness;                          ///< The sharpness value between 0 and 1, where 0 is no additional sharpness and 1 is maximum additional sharpness.
     float                       frameTimeDelta;                     ///< The time elapsed since the last frame (expressed in milliseconds).
@@ -184,6 +191,7 @@ typedef struct FfxFsr3DispatchUpscaleDescription {
     float                       cameraFar;                          ///< The distance to the far plane of the camera. This is used only used in case of non infinite depth.
     float                       cameraFovAngleVertical;             ///< The camera angle field of view in the vertical direction (expressed in radians).
     float                       viewSpaceToMetersFactor;            ///< The scale factor to convert view space units to meters
+    uint32_t                    flags;                              ///< combination of FfxFsr3UpscalingFlags
 } FfxFsr3DispatchUpscaleDescription;
 
 FFX_API FfxErrorCode ffxFsr3DispatchFrameGeneration(const FfxFrameGenerationDispatchDescription* desc);

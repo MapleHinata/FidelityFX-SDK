@@ -116,7 +116,7 @@ FfxErrorCode ffxFsr3ContextCreate(FfxFsr3Context* context, FfxFsr3ContextDescrip
         upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_DEBUG_CHECKING) ? FFX_FSR3UPSCALER_ENABLE_DEBUG_CHECKING : 0;
         upDesc.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_HDR_UPSCALE_SDR_FINALOUTPUT) ? FFX_FSR3UPSCALER_ENABLE_HIGH_DYNAMIC_RANGE : 0;
         upDesc.maxRenderSize = contextDescription->maxRenderSize;
-		upDesc.displaySize = contextDescription->upscaleOutputSize;
+		upDesc.maxUpscaleSize = contextDescription->upscaleOutputSize;
 		upDesc.backendInterface = contextDescription->backendInterfaceUpscaling;
 		upDesc.fpMessage = contextDescription->fpMessage;
 		FFX_VALIDATE(ffxFsr3UpscalerContextCreate(&contextPrivate->upscalerContext, &upDesc));
@@ -154,34 +154,6 @@ FfxErrorCode ffxFsr3ContextCreate(FfxFsr3Context* context, FfxFsr3ContextDescrip
             &contextDescription->backendInterfaceSharedResources, &ofResourceDescs.opticalFlowVector, contextPrivate->effectContextIdSharedResources, &contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_OPTICAL_FLOW_VECTOR]));
         FFX_VALIDATE(contextDescription->backendInterfaceSharedResources.fpCreateResource(
             &contextDescription->backendInterfaceSharedResources, &ofResourceDescs.opticalFlowSCD, contextPrivate->effectContextIdSharedResources, &contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_OPTICAL_FLOW_SCD_OUTPUT]));
-    }
-
-    // set up FSR3Upscaler resources
-    {
-        FfxFsr3UpscalerSharedResourceDescriptions fs3UpscalerResourceDescs = {};
-        FFX_VALIDATE(ffxFsr3UpscalerGetSharedResourceDescriptions(&contextPrivate->upscalerContext, &fs3UpscalerResourceDescs));
-
-        wchar_t Name[256] = {};
-        for (FfxUInt32 i = 0; i < contextPrivate->sharedResourceCount; i++)
-        {
-            FfxCreateResourceDescription dilD = fs3UpscalerResourceDescs.dilatedDepth;
-            swprintf(Name, 255, L"%s%d", fs3UpscalerResourceDescs.dilatedDepth.name, i);
-            dilD.name = Name;
-            FFX_VALIDATE(contextDescription->backendInterfaceSharedResources.fpCreateResource(
-                &contextDescription->backendInterfaceSharedResources, &dilD, contextPrivate->effectContextIdSharedResources, &contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_DILATED_DEPTH_0 + (i * FFX_FSR3_RESOURCE_IDENTIFIER_UPSCALED_COUNT)]));
-
-            FfxCreateResourceDescription dilMVs = fs3UpscalerResourceDescs.dilatedMotionVectors;
-            swprintf(Name, 255, L"%s%d", fs3UpscalerResourceDescs.dilatedMotionVectors.name, i);
-            dilMVs.name = Name;
-            FFX_VALIDATE(contextDescription->backendInterfaceSharedResources.fpCreateResource(
-                &contextDescription->backendInterfaceSharedResources, &dilMVs, contextPrivate->effectContextIdSharedResources, &contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_DILATED_MOTION_VECTORS_0 + (i * FFX_FSR3_RESOURCE_IDENTIFIER_UPSCALED_COUNT)]));
-
-            FfxCreateResourceDescription recND = fs3UpscalerResourceDescs.reconstructedPrevNearestDepth;
-            swprintf(Name, 255, L"%s%d", fs3UpscalerResourceDescs.reconstructedPrevNearestDepth.name, i);
-            recND.name = Name;
-            FFX_VALIDATE(contextDescription->backendInterfaceSharedResources.fpCreateResource(
-                &contextDescription->backendInterfaceSharedResources, &recND, contextPrivate->effectContextIdSharedResources, &contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_RECONSTRUCTED_PREVIOUS_NEAREST_DEPTH_0 + (i * FFX_FSR3_RESOURCE_IDENTIFIER_UPSCALED_COUNT)]));
-        }
     }
 
     return ret;
@@ -311,30 +283,31 @@ FfxErrorCode ffxFsr3ContextDispatchUpscale(FfxFsr3Context* context, const FfxFsr
     
     // dispatch FSR3
     FfxFsr3UpscalerDispatchDescription fsr3DispatchParams;
-	fsr3DispatchParams.commandList = dispatchParams->commandList;
-	fsr3DispatchParams.color = dispatchParams->color;
-	fsr3DispatchParams.depth = dispatchParams->depth;
-	fsr3DispatchParams.motionVectors = dispatchParams->motionVectors;
-	fsr3DispatchParams.exposure = dispatchParams->exposure;
-	fsr3DispatchParams.reactive = dispatchParams->reactive;
-	fsr3DispatchParams.transparencyAndComposition = dispatchParams->transparencyAndComposition;
-    fsr3DispatchParams.dilatedDepth = contextPrivate->backendInterfaceSharedResources.fpGetResource(&contextPrivate->backendInterfaceSharedResources, contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_DILATED_DEPTH_0 + (sharedResourceIndexUpscaling * FFX_FSR3_RESOURCE_IDENTIFIER_UPSCALED_COUNT)]);
-    fsr3DispatchParams.dilatedMotionVectors = contextPrivate->backendInterfaceSharedResources.fpGetResource(&contextPrivate->backendInterfaceSharedResources, contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_DILATED_MOTION_VECTORS_0 + (sharedResourceIndexUpscaling * FFX_FSR3_RESOURCE_IDENTIFIER_UPSCALED_COUNT)]);
-    fsr3DispatchParams.reconstructedPrevNearestDepth = contextPrivate->backendInterfaceSharedResources.fpGetResource(&contextPrivate->backendInterfaceSharedResources, contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_RECONSTRUCTED_PREVIOUS_NEAREST_DEPTH_0 + (sharedResourceIndexUpscaling * FFX_FSR3_RESOURCE_IDENTIFIER_UPSCALED_COUNT)]);
-	fsr3DispatchParams.output = dispatchParams->upscaleOutput;
-	fsr3DispatchParams.jitterOffset = dispatchParams->jitterOffset;
-	fsr3DispatchParams.motionVectorScale = dispatchParams->motionVectorScale;
-	fsr3DispatchParams.renderSize = dispatchParams->renderSize;
-	fsr3DispatchParams.enableSharpening = dispatchParams->enableSharpening;
-	fsr3DispatchParams.sharpness = dispatchParams->sharpness;
-	fsr3DispatchParams.frameTimeDelta = dispatchParams->frameTimeDelta;
-	fsr3DispatchParams.preExposure = dispatchParams->preExposure;
-	fsr3DispatchParams.reset = dispatchParams->reset;
-	fsr3DispatchParams.cameraNear = dispatchParams->cameraNear;
-	fsr3DispatchParams.cameraFar = dispatchParams->cameraFar;
-	fsr3DispatchParams.cameraFovAngleVertical = dispatchParams->cameraFovAngleVertical;
+    fsr3DispatchParams.commandList                = dispatchParams->commandList;
+    fsr3DispatchParams.color                      = dispatchParams->color;
+    fsr3DispatchParams.depth                      = dispatchParams->depth;
+    fsr3DispatchParams.motionVectors              = dispatchParams->motionVectors;
+    fsr3DispatchParams.exposure                   = dispatchParams->exposure;
+    fsr3DispatchParams.reactive                   = dispatchParams->reactive;
+    fsr3DispatchParams.transparencyAndComposition = dispatchParams->transparencyAndComposition;
+    fsr3DispatchParams.output                     = dispatchParams->upscaleOutput;
+    fsr3DispatchParams.jitterOffset               = dispatchParams->jitterOffset;
+    fsr3DispatchParams.motionVectorScale          = dispatchParams->motionVectorScale;
+    fsr3DispatchParams.renderSize                 = dispatchParams->renderSize;
+    fsr3DispatchParams.enableSharpening           = dispatchParams->enableSharpening;
+    fsr3DispatchParams.sharpness                  = dispatchParams->sharpness;
+    fsr3DispatchParams.frameTimeDelta             = dispatchParams->frameTimeDelta;
+    fsr3DispatchParams.preExposure                = dispatchParams->preExposure;
+    fsr3DispatchParams.reset                      = dispatchParams->reset;
+    fsr3DispatchParams.cameraNear                 = dispatchParams->cameraNear;
+    fsr3DispatchParams.cameraFar                  = dispatchParams->cameraFar;
+    fsr3DispatchParams.cameraFovAngleVertical     = dispatchParams->cameraFovAngleVertical;
+    fsr3DispatchParams.viewSpaceToMetersFactor    = dispatchParams->viewSpaceToMetersFactor;
 
-	fsr3DispatchParams.viewSpaceToMetersFactor  = dispatchParams->viewSpaceToMetersFactor;
+    if (dispatchParams->flags & FFX_FSR3_UPSCALER_FLAG_DRAW_DEBUG_VIEW)
+    {
+        fsr3DispatchParams.flags |= FFX_FSR3UPSCALER_DISPATCH_DRAW_DEBUG_VIEW;
+    }
 
     // store dispatch params, re-used in frame interpolation
     contextPrivate->upscaleDescriptions[sharedResourceIndexUpscaling] = *dispatchParams;

@@ -1,16 +1,17 @@
 // This file is part of the FidelityFX SDK.
-// 
-// Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+//
+// Copyright (C) 2024 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
+// of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// to use, copy, modify, merge, publish, distribute, sublicense, and /or sell
 // copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
+// furnished to do so, subject to the following conditions :
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,23 +20,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#define FSR3UPSCALER_BIND_SRV_DILATED_REACTIVE_MASKS                0
+#define FSR3UPSCALER_BIND_SRV_DILATED_MOTION_VECTORS                1
+#define FSR3UPSCALER_BIND_SRV_DILATED_DEPTH                         2
+#define FSR3UPSCALER_BIND_SRV_INTERNAL_UPSCALED                     3
+#define FSR3UPSCALER_BIND_SRV_INPUT_EXPOSURE                        4
 
-#define FSR3UPSCALER_BIND_SRV_INPUT_MOTION_VECTORS                  0
-#define FSR3UPSCALER_BIND_SRV_INPUT_DEPTH                           1
-#define FSR3UPSCALER_BIND_SRV_INPUT_COLOR                           2
-#define FSR3UPSCALER_BIND_SRV_INPUT_EXPOSURE                        3
-
-#define FSR3UPSCALER_BIND_UAV_RECONSTRUCTED_PREV_NEAREST_DEPTH      0
-#define FSR3UPSCALER_BIND_UAV_DILATED_MOTION_VECTORS                1
-#define FSR3UPSCALER_BIND_UAV_DILATED_DEPTH                         2
-#define FSR3UPSCALER_BIND_UAV_LOCK_INPUT_LUMA                       3
+#define FSR3UPSCALER_BIND_UAV_UPSCALED_OUTPUT                       0
 
 #define FSR3UPSCALER_BIND_CB_FSR3UPSCALER                           0
 
 #include "fsr3upscaler/ffx_fsr3upscaler_callbacks_hlsl.h"
 #include "fsr3upscaler/ffx_fsr3upscaler_common.h"
-#include "fsr3upscaler/ffx_fsr3upscaler_sample.h"
-#include "fsr3upscaler/ffx_fsr3upscaler_reconstruct_dilated_velocity_and_previous_depth.h"
+#include "fsr3upscaler/ffx_fsr3upscaler_debug_view.h"
 
 #ifndef FFX_FSR3UPSCALER_THREAD_GROUP_WIDTH
 #define FFX_FSR3UPSCALER_THREAD_GROUP_WIDTH 8
@@ -53,12 +50,7 @@
 FFX_PREFER_WAVE64
 FFX_FSR3UPSCALER_NUM_THREADS
 FFX_FSR3UPSCALER_EMBED_ROOTSIG_CONTENT
-void CS(
-    int2 iGroupId : SV_GroupID,
-    int2 iDispatchThreadId : SV_DispatchThreadID,
-    int2 iGroupThreadId : SV_GroupThreadID,
-    int iGroupIndex : SV_GroupIndex
-)
+void CS(FfxInt32x2 iPxPos : SV_DispatchThreadID)
 {
-    ReconstructAndDilate(iDispatchThreadId);
+    DebugView(iPxPos);
 }

@@ -1,16 +1,17 @@
 // This file is part of the FidelityFX SDK.
-// 
-// Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+//
+// Copyright (C) 2024 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
+// of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// to use, copy, modify, merge, publish, distribute, sublicense, and /or sell
 // copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
+// furnished to do so, subject to the following conditions :
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +19,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 
 FFX_GROUPSHARED FfxUInt32 spdCounter;
 
@@ -43,49 +43,68 @@ FFX_GROUPSHARED FfxFloat32 spdIntermediateG[16][16];
 FFX_GROUPSHARED FfxFloat32 spdIntermediateB[16][16];
 FFX_GROUPSHARED FfxFloat32 spdIntermediateA[16][16];
 
-FfxFloat32x4 SpdLoadSourceImage(FfxFloat32x2 tex, FfxUInt32 slice)
+FFX_STATIC const FfxInt32 LOG_LUMA        = 0;
+FFX_STATIC const FfxInt32 LUMA            = 1;
+FFX_STATIC const FfxInt32 DEPTH_IN_METERS = 2;
+
+FfxFloat32x4 SpdLoadSourceImage(FfxFloat32x2 iPxPos, FfxUInt32 slice)
 {
-    FfxFloat32x2 fUv = (tex + 0.5f + Jitter()) / RenderSize();
-    fUv = ClampUv(fUv, RenderSize(), InputColorResourceDimensions());
-    FfxFloat32x3 fRgb = SampleInputColor(fUv);
+    //We assume linear data. if non-linear input (sRGB, ...),
+    //then we should convert to linear first and back to sRGB on output.
+    const FfxInt32x2 iPxSamplePos = ClampLoad(FfxInt32x2(iPxPos), FfxInt32x2(0, 0), FfxInt32x2(RenderSize()));
 
-    fRgb /= PreExposure();
-   
-    //compute log luma
-    const FfxFloat32 fLogLuma = log(ffxMax(FSR3UPSCALER_EPSILON, RGBToLuma(fRgb)));
+    const FfxFloat32 fLuma                  = LoadCurrentLuma(iPxSamplePos);
+    const FfxFloat32 fLogLuma               = ffxMax(FSR3UPSCALER_EPSILON, log(fLuma));
+    const FfxFloat32 fFarthestDepthInMeters = LoadFarthestDepth(iPxSamplePos);
 
-    // Make sure out of screen pixels contribute no value to the end result
-    const FfxFloat32 result = all(FFX_LESS_THAN(tex, RenderSize())) ? fLogLuma : 0.0f;
+    FfxFloat32x4 fOutput        = FfxFloat32x4(0.0f, 0.0f, 0.0f, 0.0f);
+    fOutput[LOG_LUMA]           = fLogLuma;
+    fOutput[LUMA]               = fLuma;
+    fOutput[DEPTH_IN_METERS]    = fFarthestDepthInMeters;
 
-    return FfxFloat32x4(result, 0, 0, 0);
+    return fOutput;
 }
 
 FfxFloat32x4 SpdLoad(FfxInt32x2 tex, FfxUInt32 slice)
 {
-    return SPD_LoadMipmap5(tex);
+    return FfxFloat32x4(RWLoadPyramid(tex, 5), 0, 0);
+}
+
+FfxFloat32x4 SpdReduce4(FfxFloat32x4 v0, FfxFloat32x4 v1, FfxFloat32x4 v2, FfxFloat32x4 v3)
+{
+    return (v0 + v1 + v2 + v3) * 0.25f;
 }
 
 void SpdStore(FfxInt32x2 pix, FfxFloat32x4 outValue, FfxUInt32 index, FfxUInt32 slice)
 {
-    if (index == LumaMipLevelToUse() || index == 5)
+    if (index == 5)
     {
-        SPD_SetMipmap(pix, index, outValue.r);
+        StorePyramid(pix, outValue.xy, index);
+    }
+    else if (index == 0) {
+        StoreFarthestDepthMip1(pix, outValue[DEPTH_IN_METERS]);
     }
 
     if (index == MipCount() - 1) { //accumulate on 1x1 level
 
         if (all(FFX_EQUAL(pix, FfxInt32x2(0, 0))))
         {
-            FfxFloat32 prev = SPD_LoadExposureBuffer().y;
-            FfxFloat32 result = outValue.r;
+            FfxFloat32x4 frameInfo          = LoadFrameInfo();
+            const FfxFloat32 fSceneAvgLuma  = outValue[LUMA];
+            const FfxFloat32 fPrevLogLuma   = frameInfo[FRAME_INFO_LOG_LUMA];
+            FfxFloat32 fLogLuma             = outValue[LOG_LUMA];
 
-            if (prev < resetAutoExposureAverageSmoothing) // Compare Lavg, so small or negative values
+            if (fPrevLogLuma < resetAutoExposureAverageSmoothing) // Compare Lavg, so small or negative values
             {
-                FfxFloat32 rate = 1.0f;
-                result = prev + (result - prev) * (1 - exp(-DeltaTime() * rate));
+                fLogLuma = fPrevLogLuma + (fLogLuma - fPrevLogLuma) * (1.0f - exp(-DeltaTime()));
+                fLogLuma = ffxMax(0.0f, fLogLuma);
             }
-            FfxFloat32x2 spdOutput = FfxFloat32x2(ComputeAutoExposureFromLavg(result), result);
-            SPD_SetExposureBuffer(spdOutput);
+
+            frameInfo[FRAME_INFO_EXPOSURE]             = ComputeAutoExposureFromLavg(fLogLuma);
+            frameInfo[FRAME_INFO_LOG_LUMA]             = fLogLuma;
+            frameInfo[FRAME_INFO_SCENE_AVERAGE_LUMA]   = fSceneAvgLuma;
+
+            StoreFrameInfo(frameInfo);
         }
     }
 }
@@ -105,10 +124,7 @@ void SpdStoreIntermediate(FfxUInt32 x, FfxUInt32 y, FfxFloat32x4 value)
     spdIntermediateB[x][y] = value.z;
     spdIntermediateA[x][y] = value.w;
 }
-FfxFloat32x4 SpdReduce4(FfxFloat32x4 v0, FfxFloat32x4 v1, FfxFloat32x4 v2, FfxFloat32x4 v3)
-{
-    return (v0 + v1 + v2 + v3) * 0.25f;
-}
+
 #endif
 
 // define fetch and store functions Packed

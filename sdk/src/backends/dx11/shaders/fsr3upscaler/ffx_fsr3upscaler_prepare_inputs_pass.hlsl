@@ -20,23 +20,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#define FSR3UPSCALER_BIND_SRV_INPUT_EXPOSURE            0
-#define FSR3UPSCALER_BIND_SRV_RCAS_INPUT                1
+#define FSR3UPSCALER_BIND_SRV_INPUT_MOTION_VECTORS                      0
+#define FSR3UPSCALER_BIND_SRV_INPUT_DEPTH                               1
+#define FSR3UPSCALER_BIND_SRV_INPUT_COLOR                               2
 
-#define FSR3UPSCALER_BIND_UAV_UPSCALED_OUTPUT           0
+#define FSR3UPSCALER_BIND_UAV_DILATED_MOTION_VECTORS                    0
+#define FSR3UPSCALER_BIND_UAV_DILATED_DEPTH                             1
+#define FSR3UPSCALER_BIND_UAV_RECONSTRUCTED_PREV_NEAREST_DEPTH          2
+#define FSR3UPSCALER_BIND_UAV_FARTHEST_DEPTH                            3
+#define FSR3UPSCALER_BIND_UAV_CURRENT_LUMA                              4
 
-#define FSR3UPSCALER_BIND_CB_FSR3UPSCALER               0
-#define FSR3UPSCALER_BIND_CB_RCAS                       1
+#define FSR3UPSCALER_BIND_CB_FSR3UPSCALER                               0
 
 #include "fsr3upscaler/ffx_fsr3upscaler_callbacks_hlsl.h"
 #include "fsr3upscaler/ffx_fsr3upscaler_common.h"
-#include "fsr3upscaler/ffx_fsr3upscaler_rcas.h"
+#include "fsr3upscaler/ffx_fsr3upscaler_prepare_inputs.h"
 
 #ifndef FFX_FSR3UPSCALER_THREAD_GROUP_WIDTH
-#define FFX_FSR3UPSCALER_THREAD_GROUP_WIDTH 64
+#define FFX_FSR3UPSCALER_THREAD_GROUP_WIDTH 8
 #endif // #ifndef FFX_FSR3UPSCALER_THREAD_GROUP_WIDTH
 #ifndef FFX_FSR3UPSCALER_THREAD_GROUP_HEIGHT
-#define FFX_FSR3UPSCALER_THREAD_GROUP_HEIGHT 1
+#define FFX_FSR3UPSCALER_THREAD_GROUP_HEIGHT 8
 #endif // #ifndef FFX_FSR3UPSCALER_THREAD_GROUP_HEIGHT
 #ifndef FFX_FSR3UPSCALER_THREAD_GROUP_DEPTH
 #define FFX_FSR3UPSCALER_THREAD_GROUP_DEPTH 1
@@ -45,9 +49,10 @@
 #define FFX_FSR3UPSCALER_NUM_THREADS [numthreads(FFX_FSR3UPSCALER_THREAD_GROUP_WIDTH, FFX_FSR3UPSCALER_THREAD_GROUP_HEIGHT, FFX_FSR3UPSCALER_THREAD_GROUP_DEPTH)]
 #endif // #ifndef FFX_FSR3UPSCALER_NUM_THREADS
 
+FFX_PREFER_WAVE64
 FFX_FSR3UPSCALER_NUM_THREADS
-FFX_FSR3UPSCALER_EMBED_CB2_ROOTSIG_CONTENT
-void CS(uint3 LocalThreadId : SV_GroupThreadID, uint3 WorkGroupId : SV_GroupID, uint3 Dtid : SV_DispatchThreadID)
+FFX_FSR3UPSCALER_EMBED_ROOTSIG_CONTENT
+void CS(int2 iDispatchThreadId : SV_DispatchThreadID)
 {
-    RCAS(LocalThreadId, WorkGroupId, Dtid);
+    PrepareInputs(iDispatchThreadId);
 }
