@@ -47,7 +47,7 @@ void GenerateSceneChangeDetectionHistogram(FfxInt32x3 iGlobalId, FfxInt32x2 iLoc
     {
         scdBuffer[bufferOffset + i] = 0;
     }
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     FfxInt32x2 coord = FfxInt32x2(startX + (4 * iGlobalId.x), startY + iGlobalId.y);
     if (coord.x < stopX)
@@ -77,7 +77,7 @@ void GenerateSceneChangeDetectionHistogram(FfxInt32x3 iGlobalId, FfxInt32x2 iLoc
 #endif
         }
     }
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     FfxUInt32 value = 0;
     for (FfxInt32 i = 0; i < LBASE; i++)

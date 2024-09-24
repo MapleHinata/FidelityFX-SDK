@@ -27,6 +27,9 @@
 #ifdef FFX_BACKEND_DX12
 #include <ffx_api/dx12/ffx_api_dx12.h>
 #endif // FFX_BACKEND_DX12
+#ifdef FFX_BACKEND_DX11
+#include <ffx_api/dx11/ffx_api_dx11.h>
+#endif  // FFX_BACKEND_DX11
 #ifdef FFX_BACKEND_VK
 #include <ffx_api/vk/ffx_api_vk.h>
 #endif // #ifdef FFX_BACKEND_VK
@@ -98,6 +101,8 @@ ffxReturnCode_t ffxProvider_FSR3Upscale::CreateContext(ffxContext* context, ffxC
             Validator{desc->fpMessage, header}.AcceptExtensions({FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_DX12, FFX_API_DESC_TYPE_OVERRIDE_VERSION});
 #elif FFX_BACKEND_VK
             Validator{ desc->fpMessage, header }.AcceptExtensions({ FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_VK, FFX_API_DESC_TYPE_OVERRIDE_VERSION });
+#elif FFX_BACKEND_DX11
+            Validator{desc->fpMessage, header}.AcceptExtensions({FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_DX11, FFX_API_DESC_TYPE_OVERRIDE_VERSION});
 #endif // FFX_BACKEND_DX12
         }
         InternalFsr3UpscalerUContext* internal_context = alloc.construct<InternalFsr3UpscalerUContext>();

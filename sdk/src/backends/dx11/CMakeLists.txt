@@ -168,6 +168,7 @@ file(GLOB PRIVATE_SOURCE
 	"${FFX_SRC_BACKENDS_PATH}/shared/blob_accessors/"
 	"${CMAKE_CURRENT_SOURCE_DIR}/*.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/*.c"
 	"${CMAKE_CURRENT_SOURCE_DIR}/FrameInterpolationSwapchain/*.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/FrameInterpolationSwapchain/*.cpp"
 )

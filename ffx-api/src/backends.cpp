@@ -22,6 +22,10 @@
 
 #include "backends.h"
 
+#ifdef FFX_BACKEND_DX11
+#include <ffx_api/dx11/ffx_api_dx11.h>
+#include <FidelityFX/host/backends/dx11/ffx_dx11.h>
+#endif  // FFX_BACKEND_DX12
 #ifdef FFX_BACKEND_DX12
 #include <ffx_api/dx12/ffx_api_dx12.h>
 #include <FidelityFX/host/backends/dx12/ffx_dx12.h>
@@ -51,6 +55,22 @@ ffxReturnCode_t CreateBackend(const ffxCreateContextDescHeader *desc, bool& back
             void* scratchBuffer = alloc.alloc(scratchBufferSize);
             memset(scratchBuffer, 0, scratchBufferSize);
             TRY2(ffxGetInterfaceDX12(iface, device, scratchBuffer, scratchBufferSize, contexts));
+            break;
+        }
+#elif FFX_BACKEND_DX11
+        case FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_DX11:
+        {
+            // check for double backend just to make sure.
+            if (backendFound)
+                return FFX_API_RETURN_ERROR;
+            backendFound = true;
+
+            const auto* backendDesc       = reinterpret_cast<const ffxCreateBackendDX11Desc*>(it);
+            FfxDevice   device            = ffxGetDeviceDX11(backendDesc->device);
+            size_t      scratchBufferSize = ffxGetScratchMemorySizeDX11(contexts);
+            void*       scratchBuffer     = alloc.alloc(scratchBufferSize);
+            memset(scratchBuffer, 0, scratchBufferSize);
+            TRY2(ffxGetInterfaceDX11(iface, device, scratchBuffer, scratchBufferSize, contexts));
             break;
         }
 #elif FFX_BACKEND_VK
@@ -111,6 +131,12 @@ void* GetDevice(const ffxApiHeader* desc)
             reinterpret_cast<const ffxCreateContextDescFrameGenerationSwapChainWrapDX12*>(it)->gameQueue->GetDevice(IID_PPV_ARGS(&device));
             device->Release();
             return device;
+        }
+#endif
+#ifdef FFX_BACKEND_DX11
+        case FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_DX11:
+        {
+            return reinterpret_cast<const ffxCreateBackendDX11Desc*>(it)->device;
         }
 #endif
 #ifdef FFX_BACKEND_VK

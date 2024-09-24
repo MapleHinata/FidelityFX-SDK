@@ -33,6 +33,9 @@ endif()
 if (FFX_API_BACKEND STREQUAL DX12_X64)
 	set(FFX_PLATFORM_NAME dx12)
 endif()
+if (FFX_API_BACKEND STREQUAL DX11_X64)
+	set(FFX_PLATFORM_NAME dx11)
+endif()
 
 project(FFX_API_${FFX_PLATFORM_NAME})
 
@@ -105,6 +108,20 @@ if (FFX_API_BACKEND STREQUAL DX12_X64)
 		${CMAKE_CURRENT_SOURCE_DIR}/include/ffx_api/dx12/*.hpp)	
 endif()
 
+if (FFX_API_BACKEND STREQUAL DX11_X64)
+	message(WARNING "Setting FFX_BACKEND_DX11")
+	add_compile_definitions(FFXDLL_VERSION_API=DX11)
+	set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS FFX_BACKEND_DX11)
+
+	file(GLOB private_ffx_api_backend_dx11
+		${CMAKE_CURRENT_SOURCE_DIR}/src/dx11/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/src/dx11/*.cpp)
+
+	file(GLOB public_ffx_api_backend_dx11
+		${CMAKE_CURRENT_SOURCE_DIR}/include/ffx_api/dx11/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/include/ffx_api/dx11/*.hpp)	
+endif()
+
 add_library(amd_fidelityfx_${FFX_PLATFORM_NAME} SHARED ${private_ffx_api} ${private_ffx_api_backend_dx12} ${private_ffx_api_backend_vk} ${public_ffx_api} ${public_ffx_api_backend_dx12} ${public_ffx_api_backend_vk})
 
 source_group("private_source" FILES ${private_ffx_api})
@@ -119,6 +136,12 @@ if (FFX_API_BACKEND STREQUAL DX12_X64)
 	source_group("private_source\\dx12" FILES ${private_ffx_api_backend_dx12})
 	source_group("public_source\\dx12"  FILES ${public_ffx_api_backend_dx12})
 endif()
+
+if (FFX_API_BACKEND STREQUAL DX11_X64)
+	source_group("private_source\\dx11" FILES ${private_ffx_api_backend_dx12})
+	source_group("public_source\\dx11"  FILES ${public_ffx_api_backend_dx12})
+endif()
+
 
 target_include_directories(amd_fidelityfx_${FFX_PLATFORM_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(amd_fidelityfx_${FFX_PLATFORM_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../sdk/include)
@@ -135,6 +158,9 @@ set(FFX_BUILD_AS_DLL OFF)
 add_subdirectory(../sdk sdk)
 
 target_link_libraries(amd_fidelityfx_${FFX_PLATFORM_NAME} PRIVATE ffx_fsr2_x64 ffx_fsr3upscaler_x64 ffx_opticalflow_x64 ffx_frameinterpolation_x64 DXGI)
+if (FFX_API_BACKEND STREQUAL DX11_X64)
+	target_link_libraries(amd_fidelityfx_${FFX_PLATFORM_NAME} PRIVATE D3D11 ffx_backend_dx11_x64)
+endif()
 if (FFX_API_BACKEND STREQUAL VK_X64)
 	find_package(Vulkan REQUIRED)
 	target_link_libraries(amd_fidelityfx_${FFX_PLATFORM_NAME} PRIVATE Vulkan::Headers ffx_backend_vk_x64)

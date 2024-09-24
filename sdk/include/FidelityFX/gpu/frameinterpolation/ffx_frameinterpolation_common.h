@@ -294,6 +294,9 @@ void UnpackVectorFieldEntries(FfxUInt32x2 packed, out VectorFieldEntry vfElement
     vfElement.fMotionVector.x = ffxUnpackF32(packed.x).x;
     vfElement.fMotionVector.y = ffxUnpackF32(packed.y).x;
     vfElement.bInPainted      = false;
+    vfElement.fVelocity       = 0.0f;
+    vfElement.bNegOutside     = false;
+    vfElement.bPosOutside     = false;
 }
 
 // 

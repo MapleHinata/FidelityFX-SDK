@@ -39,7 +39,7 @@ void ComputeSCDHistogramsDivergence(FfxInt32x3 iGlobalId, FfxInt32x2 iLocalId, F
     };
 
     sourceHistogram[iLocalIndex] = FfxFloat32(LoadRwSCDHistogram(iGlobalId.x));
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     const FfxInt32 kernelShift = -5;
     const FfxInt32 indexToRead = iLocalIndex + kernelShift;
@@ -77,16 +77,16 @@ void ComputeSCDHistogramsDivergence(FfxInt32x3 iGlobalId, FfxInt32x2 iLocalId, F
         else
             filteredHistogram[iLocalIndex + 1] = val;
     }
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     tempBuffer[iLocalIndex] = filteredHistogram[iLocalIndex];
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     if (iLocalIndex < 128) tempBuffer[iLocalIndex] += tempBuffer[iLocalIndex + 128];
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     if (iLocalIndex < 64) tempBuffer[iLocalIndex] += tempBuffer[iLocalIndex + 64];
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     if (iLocalIndex < 32) tempBuffer[iLocalIndex] += tempBuffer[iLocalIndex + 32];
     if (iLocalIndex < 16) tempBuffer[iLocalIndex] += tempBuffer[iLocalIndex + 16];
@@ -94,7 +94,7 @@ void ComputeSCDHistogramsDivergence(FfxInt32x3 iGlobalId, FfxInt32x2 iLocalId, F
     if (iLocalIndex < 4 ) tempBuffer[iLocalIndex] += tempBuffer[iLocalIndex + 4];
     if (iLocalIndex < 2 ) tempBuffer[iLocalIndex] += tempBuffer[iLocalIndex + 2];
     if (iLocalIndex < 1 ) tempBuffer[iLocalIndex] += tempBuffer[iLocalIndex + 1];
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     filteredHistogram[iLocalIndex] /= tempBuffer[0];
 
@@ -105,13 +105,13 @@ void ComputeSCDHistogramsDivergence(FfxInt32x3 iGlobalId, FfxInt32x2 iLocalId, F
         currentFilteredHistogramsValue * log(currentFilteredHistogramsValue / previousHistogramsValue),
         previousHistogramsValue * log(previousHistogramsValue / currentFilteredHistogramsValue)
     );
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     if (iLocalIndex < 128) tempBuffer2[iLocalIndex] += tempBuffer2[iLocalIndex + 128];
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     if (iLocalIndex < 64) tempBuffer2[iLocalIndex] += tempBuffer2[iLocalIndex + 64];
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     if (iLocalIndex < 32) tempBuffer2[iLocalIndex] += tempBuffer2[iLocalIndex + 32];
     if (iLocalIndex < 16) tempBuffer2[iLocalIndex] += tempBuffer2[iLocalIndex + 16];

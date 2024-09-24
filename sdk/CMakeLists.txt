@@ -142,14 +142,10 @@ else()
 
 endif()
 
-if (FFX_FSR3 AND NOT FFX_API_BACKEND STREQUAL DX11_X64)
+if (FFX_FSR3)
 	option(FFX_FSR3UPSCALER "Build FFX FSR3 Upscaler API" ON)
 	option(FFX_FI "Build FFX Frame Interpolation API" ON)
 	option(FFX_OF "Build FFX Optical Flow API" ON)
-endif()
-
-if (FFX_FSR3 AND FFX_API_BACKEND STREQUAL DX11_X64)
-	option(FFX_FSR3UPSCALER "Build FFX FSR3 Upscaler API" ON)
 endif()
 
 # Add requred compile definitions

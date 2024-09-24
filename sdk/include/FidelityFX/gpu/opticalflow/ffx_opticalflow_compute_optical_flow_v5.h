@@ -49,6 +49,14 @@ FfxUInt32 BlockSad64(FfxUInt32 blockSadSum, FfxInt32 iLocalIndex, FfxInt32 iLane
     {
         blockSadSum = 0u;
     }
+
+#if FFX_HLSL_SM < 60
+    FfxInt32 waveId = iLocalIndex >> 5u;
+    FFX_ATOMIC_ADD(sWaveSad[waveId], blockSadSum);
+    FFX_GROUP_MEMORY_BARRIER();
+    blockSadSum = sWaveSad[waveId] + sWaveSad[waveId ^ 1];
+#else
+
     blockSadSum = ffxWaveSum(blockSadSum);
 
     if (ffxWaveLaneCount() == 32)
@@ -61,6 +69,7 @@ FfxUInt32 BlockSad64(FfxUInt32 blockSadSum, FfxInt32 iLocalIndex, FfxInt32 iLane
         FFX_GROUP_MEMORY_BARRIER;
         blockSadSum += sWaveSad[waveId ^ 1];
     }
+#endif
 
     return blockSadSum;
 }
@@ -70,6 +79,14 @@ FfxUInt32 SadMapMinReduction256(FfxInt32x2 iSearchId, FfxInt32 iLocalIndex)
     FfxUInt32 min01 = ffxMin(sadMapBuffer[0][iSearchId.y][iSearchId.x], sadMapBuffer[1][iSearchId.y][iSearchId.x]);
     FfxUInt32 min23 = ffxMin(sadMapBuffer[2][iSearchId.y][iSearchId.x], sadMapBuffer[3][iSearchId.y][iSearchId.x]);
     FfxUInt32 min0123 = ffxMin(min01, min23);
+
+#if FFX_HLSL_SM < 60
+    FfxInt32 waveId = iLocalIndex >> 5u;
+    FFX_ATOMIC_MIN(sWaveMin[waveId], min0123);
+    FFX_GROUP_MEMORY_BARRIER();
+    min0123 = ffxMin(sWaveMin[waveId], sWaveMin[waveId ^ 1]);
+#else
+
     min0123 = ffxWaveMin(min0123);
 
     if (ffxWaveLaneCount() == 32)
@@ -83,6 +100,7 @@ FfxUInt32 SadMapMinReduction256(FfxInt32x2 iSearchId, FfxInt32 iLocalIndex)
         FFX_GROUP_MEMORY_BARRIER;
         min0123 = ffxMin(min0123, sWaveMin[waveId ^ 1]);
     }
+#endif
 
     return min0123;
 }
@@ -100,7 +118,7 @@ void LoadSearchBuffer(FfxInt32 iLocalIndex, FfxInt32x2 iPxPosShifted)
         FfxInt32 y = baseY + idy;
         searchBuffer[0][id] = LoadSecondImagePackedLuma(FfxInt32x2(x, y));
     }
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 }
 
 FfxUInt32x4 CalculateQSads2(FfxInt32x2 iSearchId)
@@ -189,7 +207,15 @@ void PrepareSadMap(FfxInt32x2 iSearchId, FfxUInt32x4 qsad)
     sadMapBuffer[1][iSearchId.y][iSearchId.x] = (qsad.y << 16) | EncodeSearchCoord(FfxInt32x2(iSearchId.x * 4 + 1, iSearchId.y));
     sadMapBuffer[2][iSearchId.y][iSearchId.x] = (qsad.z << 16) | EncodeSearchCoord(FfxInt32x2(iSearchId.x * 4 + 2, iSearchId.y));
     sadMapBuffer[3][iSearchId.y][iSearchId.x] = (qsad.w << 16) | EncodeSearchCoord(FfxInt32x2(iSearchId.x * 4 + 3, iSearchId.y));
-    FFX_GROUP_MEMORY_BARRIER;
+
+#if FFX_HLSL_SM < 60
+    sWaveSad[0] = 0;
+    sWaveSad[1] = 0;
+    sWaveMin[0] = 0xffffffffu;
+    sWaveMin[1] = 0xffffffffu;
+#endif
+
+    FFX_GROUP_MEMORY_BARRIER();
 }
 
 

@@ -59,7 +59,7 @@ void ScaleOpticalFlowAdvanced(FfxInt32x3 iGlobalId, FfxInt32x3 iLocalId)
             localRegion[n][iLocalId.y][iLocalId.x] = firstPixel;
         }
     }
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     uint sad = 0;
     for (int n = 0; n < maxY; n++)
@@ -72,7 +72,7 @@ void ScaleOpticalFlowAdvanced(FfxInt32x3 iGlobalId, FfxInt32x3 iLocalId)
     }
     sads[iLocalId.z][iLocalId.y][iLocalId.x] = sad;
 
-    FFX_GROUP_MEMORY_BARRIER;
+    FFX_GROUP_MEMORY_BARRIER();
 
     {
         if (iLocalId.z == 0)
