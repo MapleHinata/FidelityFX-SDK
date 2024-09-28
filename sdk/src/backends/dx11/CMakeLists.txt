@@ -336,10 +336,6 @@ target_include_directories(ffx_backend_dx11_${FFX_PLATFORM_NAME} PRIVATE ${FFX_S
 target_include_directories(ffx_backend_dx11_${FFX_PLATFORM_NAME} PRIVATE "${FFX_SRC_BACKENDS_PATH}/shared")
 target_include_directories(ffx_backend_dx11_${FFX_PLATFORM_NAME} PRIVATE ${FFX_PASS_SHADER_OUTPUT_PATH})
 
-if (NOT FFX_BUILD_AS_DLL)
-    target_link_libraries (ffx_backend_dx11_${FFX_PLATFORM_NAME} pixlib)
-endif()
-
 set_source_files_properties(${PRIVATE_SHADERS} PROPERTIES HEADER_FILE_ONLY TRUE)
 set_source_files_properties(${PUBLIC_SHADERS} PROPERTIES HEADER_FILE_ONLY TRUE)
 
