@@ -200,7 +200,7 @@ static void SetNameDX11(ID3D11DeviceChild* resource, wchar_t const* name)
 {
     if (resource)
     {
-        resource->SetPrivateData(WKPDID_D3DDebugObjectNameW, static_cast<UINT>(wcslen(name)), name);
+        resource->SetPrivateData(WKPDID_D3DDebugObjectNameW, static_cast<UINT>(wcslen(name) * sizeof(wchar_t)), name);
     }
 }
 
