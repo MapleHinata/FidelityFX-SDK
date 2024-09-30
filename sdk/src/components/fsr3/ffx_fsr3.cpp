@@ -276,7 +276,7 @@ FfxErrorCode ffxFsr3ContextDispatchUpscale(FfxFsr3Context* context, const FfxFsr
     contextPrivate->frameIndexUpscaling++;
     
     // dispatch FSR3
-    FfxFsr3UpscalerDispatchDescription fsr3DispatchParams;
+    FfxFsr3UpscalerDispatchDescription fsr3DispatchParams = {};
     fsr3DispatchParams.commandList                = dispatchParams->commandList;
     fsr3DispatchParams.color                      = dispatchParams->color;
     fsr3DispatchParams.depth                      = dispatchParams->depth;
@@ -298,6 +298,7 @@ FfxErrorCode ffxFsr3ContextDispatchUpscale(FfxFsr3Context* context, const FfxFsr
     fsr3DispatchParams.cameraFar                  = dispatchParams->cameraFar;
     fsr3DispatchParams.cameraFovAngleVertical     = dispatchParams->cameraFovAngleVertical;
     fsr3DispatchParams.viewSpaceToMetersFactor    = dispatchParams->viewSpaceToMetersFactor;
+    fsr3DispatchParams.flags = 0;
 
     if (dispatchParams->flags & FFX_FSR3_UPSCALER_FLAG_DRAW_DEBUG_VIEW)
     {
