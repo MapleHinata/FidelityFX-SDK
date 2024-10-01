@@ -234,9 +234,6 @@ FfxErrorCode ffxFsr3DispatchFrameGeneration(const FfxFrameGenerationDispatchDesc
         fiDispatchDesc.cameraFar = upscaleDesc->cameraFar;
         fiDispatchDesc.viewSpaceToMetersFactor = upscaleDesc->viewSpaceToMetersFactor;
         fiDispatchDesc.cameraFovAngleVertical = upscaleDesc->cameraFovAngleVertical;
-        fiDispatchDesc.dilatedDepth = contextPrivate->backendInterfaceSharedResources.fpGetResource(&contextPrivate->backendInterfaceSharedResources, contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_DILATED_DEPTH_0 + (sharedResourceIndexFrameInterpolation * FFX_FSR3_RESOURCE_IDENTIFIER_UPSCALED_COUNT)]);
-        fiDispatchDesc.dilatedMotionVectors = contextPrivate->backendInterfaceSharedResources.fpGetResource(&contextPrivate->backendInterfaceSharedResources, contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_DILATED_MOTION_VECTORS_0 + (sharedResourceIndexFrameInterpolation * FFX_FSR3_RESOURCE_IDENTIFIER_UPSCALED_COUNT)]);
-        fiDispatchDesc.reconstructPrevNearDepth = contextPrivate->backendInterfaceSharedResources.fpGetResource(&contextPrivate->backendInterfaceSharedResources, contextPrivate->upscalerResources[FFX_FSR3_RESOURCE_IDENTIFIER_RECONSTRUCTED_PREVIOUS_NEAREST_DEPTH_0 + (sharedResourceIndexFrameInterpolation * FFX_FSR3_RESOURCE_IDENTIFIER_UPSCALED_COUNT)]);
         
         fiDispatchDesc.interpolationRect.left = 0;
         fiDispatchDesc.interpolationRect.top = 0;
