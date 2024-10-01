@@ -35,7 +35,7 @@ FfxFloat32x4 FsrRcasLoadF(FfxInt32x2 p)
 {
     FfxFloat32x4 fColor = LoadRCAS_Input(p);
 
-    fColor.rgb *= Exposure();
+    fColor.rgb *= DeltaPreExposure() * Exposure();
 
     return fColor;
 }
