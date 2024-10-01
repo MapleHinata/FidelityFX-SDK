@@ -58,7 +58,7 @@ function(compile_shaders EXECUTABLE BASE_ARGS DX11_BASE_ARGS PERMUTATION_ARGS IN
 		set(WAVE64_16BIT_PERMUTATION_HEADER ${FFX_PASS_SHADER_OUTPUT_PATH}/${PASS_SHADER_TARGET}_wave64_16bit_permutations.h)
 
 		# combine base and permutation args
-		set(SC_ARGS ${BASE_ARGS} ${DX11_BASE_ARGS} ${PERMUTATION_ARGS})
+		set(SC_ARGS ${BASE_ARGS} ${DX11_BASE_ARGS} ${PERMUTATION_ARGS} -disable-logs)
 
 		if (USE_DEPFILE)
 			# Wave32
