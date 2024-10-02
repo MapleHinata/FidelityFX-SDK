@@ -522,6 +522,22 @@ FFX_API FfxErrorCode ffxFsr3GetJitterOffset(float* outX, float* outY, int32_t in
 /// @ingroup FSR3
 FFX_API bool ffxFsr3ResourceIsNull(FfxResource resource);
 
+/// Override upscaler constant buffer value after upscaler context creation.
+///
+/// @param [in] context                  A pointer to a <c><i>FfxFsr3Context</i></c> structure.
+/// @param [in] key                      A key from <c><i>FfxFsr3UpscalerConfigureKey</i></c> enum
+/// @param [in] valuePtr                 A pointer to value to pass to shader in Constant Buffer. See Fsr3UpscalerConstants
+///
+/// @retval
+/// FFX_OK                              The operation completed successfully.
+/// @retval
+/// FFX_ERROR_INVALID_ENUM              An invalid FfxFsr3UpscalerConfigureKey was specified.
+/// @retval
+/// FFX_ERROR_INVALID_POINTER           <c><i>pContext</c></i> was NULL.
+///
+/// @ingroup ffxFsr3Upscaler
+FFX_API FfxErrorCode ffxFsr3SetUpscalerConstant(FfxFsr3Context* context, FfxFsr3UpscalerConfigureKey key, void* valuePtr);
+
 #if defined(__cplusplus)
 }
 #endif // #if defined(__cplusplus)
