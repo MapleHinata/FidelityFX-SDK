@@ -544,3 +544,13 @@ FFX_API bool ffxFsr3ResourceIsNull(FfxResource resource)
 {
 	return ffxFsr3UpscalerResourceIsNull(resource);
 }
+
+FFX_API FfxErrorCode ffxFsr3SetUpscalerConstant(FfxFsr3Context* context, FfxFsr3UpscalerConfigureKey key, void* valuePtr)
+{
+    FFX_RETURN_ON_ERROR(context,FFX_ERROR_INVALID_POINTER);
+    FFX_RETURN_ON_ERROR(valuePtr,FFX_ERROR_INVALID_POINTER);
+
+    FfxFsr3Context_Private* contextPrivate = (FfxFsr3Context_Private*)(context);
+
+    return ffxFsr3UpscalerSetConstant(&contextPrivate->upscalerContext, key, valuePtr);
+}
