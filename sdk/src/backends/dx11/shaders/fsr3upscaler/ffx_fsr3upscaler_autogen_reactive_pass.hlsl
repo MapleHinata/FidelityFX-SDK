@@ -26,8 +26,8 @@
 #define FSR3UPSCALER_BIND_UAV_AUTOREACTIVE                          0
 #define FSR3UPSCALER_BIND_UAV_AUTOCOMPOSITION                       1
 
-#define FSR3UPSCALER_BIND_CB_FSR3UPSCALER                           0
-#define FSR3UPSCALER_BIND_CB_REACTIVE                               1
+#define FSR3UPSCALER_BIND_CB_REACTIVE                               0
+#define FSR3UPSCALER_BIND_CB_FSR3UPSCALER                           1
 
 #include "fsr3upscaler/ffx_fsr3upscaler_callbacks_hlsl.h"
 #include "fsr3upscaler/ffx_fsr3upscaler_common.h"

@@ -72,7 +72,7 @@ void WriteUpscaledOutput(FFX_MIN16_U2 iPxHrPos, FfxFloat32x3 fUpscaledColor)
     {
         FfxFloat32x4 fColor = LoadRCAS_Input(p);
 
-        fColor.rgb *= DeltaPreExposure() * Exposure();
+        fColor.rgb *= Exposure();
 
         return fColor;
     }

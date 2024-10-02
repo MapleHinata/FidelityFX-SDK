@@ -25,8 +25,8 @@
 
 #define FSR3UPSCALER_BIND_UAV_UPSCALED_OUTPUT           0
 
-#define FSR3UPSCALER_BIND_CB_FSR3UPSCALER               0
-#define FSR3UPSCALER_BIND_CB_RCAS                       1
+#define FSR3UPSCALER_BIND_CB_RCAS                       0
+#define FSR3UPSCALER_BIND_CB_FSR3UPSCALER               1
 
 #include "fsr3upscaler/ffx_fsr3upscaler_callbacks_hlsl.h"
 #include "fsr3upscaler/ffx_fsr3upscaler_common.h"
@@ -46,7 +46,7 @@
 #endif // #ifndef FFX_FSR3UPSCALER_NUM_THREADS
 
 FFX_FSR3UPSCALER_NUM_THREADS
-FFX_FSR3UPSCALER_EMBED_CB2_ROOTSIG_CONTENT
+FFX_FSR3UPSCALER_EMBED_ROOTSIG_CONTENT
 void CS(uint3 LocalThreadId : SV_GroupThreadID, uint3 WorkGroupId : SV_GroupID, uint3 Dtid : SV_DispatchThreadID)
 {
     RCAS(LocalThreadId, WorkGroupId, Dtid);
