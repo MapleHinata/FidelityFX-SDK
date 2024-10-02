@@ -67,6 +67,8 @@ FfxErrorCode ffxFsr3ContextCreate(FfxFsr3Context* context, FfxFsr3ContextDescrip
 
     bool upscalingOnly                      = (contextDescription->flags & FFX_FSR3_ENABLE_UPSCALING_ONLY) != 0;
     bool interpolationOnly                  = (contextDescription->flags & FFX_FSR3_ENABLE_INTERPOLATION_ONLY) != 0;
+    contextPrivate->upscalingOnly           = upscalingOnly;
+    contextPrivate->interpolationOnly       = interpolationOnly;
     contextPrivate->asyncWorkloadSupported  = (contextDescription->flags & FFX_FSR3_ENABLE_ASYNC_WORKLOAD_SUPPORT) != 0;
     contextPrivate->sharedResourceCount     = contextPrivate->asyncWorkloadSupported ? FSR3_MAX_QUEUED_FRAMES : 1;
 
@@ -106,7 +108,6 @@ FfxErrorCode ffxFsr3ContextCreate(FfxFsr3Context* context, FfxFsr3ContextDescrip
         {
             FfxInterface* backend = backendsToVerify[i];
             FFX_RETURN_ON_ERROR(backend, FFX_ERROR_INCOMPLETE_INTERFACE);
-            FFX_RETURN_ON_ERROR(backend->fpGetSDKVersion, FFX_ERROR_INCOMPLETE_INTERFACE);
             FFX_RETURN_ON_ERROR(backend->fpGetDeviceCapabilities, FFX_ERROR_INCOMPLETE_INTERFACE);
             FFX_RETURN_ON_ERROR(backend->fpCreateBackendContext, FFX_ERROR_INCOMPLETE_INTERFACE);
             FFX_RETURN_ON_ERROR(backend->fpDestroyBackendContext, FFX_ERROR_INCOMPLETE_INTERFACE);
@@ -381,6 +382,7 @@ FfxErrorCode ffxFsr3ContextDispatchUpscale(FfxFsr3Context* context, const FfxFsr
     fsr3DispatchParams.dilatedDepth                     = contextPrivate->dilatedDepth;
     fsr3DispatchParams.dilatedMotionVectors             = contextPrivate->dilatedMotionVectors;
     fsr3DispatchParams.reconstructedPrevNearestDepth    = contextPrivate->reconstructedPrevNearestDepth;
+    fsr3DispatchParams.flags                            = 0;
 
     if (dispatchParams->flags & FFX_FSR3_UPSCALER_FLAG_DRAW_DEBUG_VIEW)
     {
@@ -489,11 +491,10 @@ FfxErrorCode ffxFsr3ContextDestroy(FfxFsr3Context* context)
 {
     FfxFsr3Context_Private* contextPrivate = (FfxFsr3Context_Private*)(context);
 
-	for (FfxUInt32 i = 0; i < FFX_FSR3_RESOURCE_IDENTIFIER_COUNT; i++)
+    for (FfxUInt32 i = 0; i < FFX_FSR3_RESOURCE_IDENTIFIER_COUNT; i++)
     {
         FFX_VALIDATE(contextPrivate->backendInterfaceSharedResources.fpDestroyResource(&contextPrivate->backendInterfaceSharedResources, contextPrivate->sharedResources[i], contextPrivate->effectContextIdSharedResources))
     }
-    contextPrivate->backendInterfaceSharedResources.fpDestroyBackendContext(&contextPrivate->backendInterfaceSharedResources, contextPrivate->effectContextIdSharedResources);
 
     bool upscalingOnly     = (contextPrivate->description.flags & FFX_FSR3_ENABLE_UPSCALING_ONLY) != 0;
     bool interpolationOnly = (contextPrivate->description.flags & FFX_FSR3_ENABLE_INTERPOLATION_ONLY) != 0;
@@ -502,8 +503,10 @@ FfxErrorCode ffxFsr3ContextDestroy(FfxFsr3Context* context)
     {
         FFX_VALIDATE(ffxFrameInterpolationContextDestroy(&contextPrivate->fiContext));
         FFX_VALIDATE(ffxOpticalflowContextDestroy(&contextPrivate->ofContext));
+        contextPrivate->backendInterfaceSharedResources.fpDestroyBackendContext(&contextPrivate->backendInterfaceSharedResources,contextPrivate->effectContextIdSharedResources);
+
     }
-        
+
     if (!interpolationOnly)
     {
         FFX_VALIDATE(ffxFsr3UpscalerContextDestroy(&contextPrivate->upscalerContext));
