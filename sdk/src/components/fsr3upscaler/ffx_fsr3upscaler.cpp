@@ -28,6 +28,11 @@
 
 #define FFX_CPU
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma clang diagnostic ignored "-Wsign-compare"
+#endif
+
 #include <FidelityFX/gpu/ffx_core.h>
 #include <FidelityFX/gpu/fsr1/ffx_fsr1.h>
 #include <FidelityFX/gpu/spd/ffx_spd.h>
@@ -35,10 +40,6 @@
 #include <FidelityFX/gpu/fsr3upscaler/ffx_fsr3upscaler_resources.h>
 #include <FidelityFX/gpu/fsr3upscaler/ffx_fsr3upscaler_common.h>
 #include <ffx_object_management.h>
-
-#ifdef __clang__
-#pragma clang diagnostic ignored "-Wunused-variable"
-#endif
 
 // max queued frames for descriptor management
 static const uint32_t FSR3UPSCALER_MAX_QUEUED_FRAMES = 16;
@@ -378,7 +379,12 @@ static uint32_t getPipelinePermutationFlags(uint32_t contextFlags, FfxFsr3Upscal
     flags |= (passId == FFX_FSR3UPSCALER_PASS_ACCUMULATE_SHARPEN) ? FSR3UPSCALER_SHADER_PERMUTATION_ENABLE_SHARPENING : 0;
     flags |= (useLut) ? FSR3UPSCALER_SHADER_PERMUTATION_USE_LANCZOS_TYPE : 0;
     flags |= (force64) ? FSR3UPSCALER_SHADER_PERMUTATION_FORCE_WAVE64 : 0;
+#if defined(_GAMING_XBOX)
+    /** On Xbox we enable 16-bit math, and use 32-bit within the shader only where it's necessary. */
+    flags |= (fp16) ? FSR3UPSCALER_SHADER_PERMUTATION_ALLOW_FP16 : 0;
+#else
     flags |= (fp16 && (passId != FFX_FSR3UPSCALER_PASS_RCAS)) ? FSR3UPSCALER_SHADER_PERMUTATION_ALLOW_FP16 : 0;
+#endif // defined(_GAMING_XBOX)
     return flags;
 }
 
@@ -527,6 +533,7 @@ static FfxErrorCode fsr3upscalerCreate(FfxFsr3UpscalerContext_Private* context, 
 
     context->constants.maxUpscaleSize[0] = contextDescription->maxUpscaleSize.width;
     context->constants.maxUpscaleSize[1] = contextDescription->maxUpscaleSize.height;
+    context->constants.velocityFactor = 1.0f;
 
     // generate the data for the LUT.
     const uint32_t lanczos2LutWidth = 128;
@@ -547,15 +554,6 @@ static FfxErrorCode fsr3upscalerCreate(FfxFsr3UpscalerContext_Private* context, 
 
     // declare internal resources needed
     const FfxInternalResourceDescription internalSurfaceDesc[] = {
-
-        {   FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_MOTION_VECTORS, L"FSR3UPSCALER_DilatedVelocity", FFX_RESOURCE_TYPE_TEXTURE2D, (FfxResourceUsage)(FFX_RESOURCE_USAGE_RENDERTARGET | FFX_RESOURCE_USAGE_UAV),
-            FFX_SURFACE_FORMAT_R16G16_FLOAT, contextDescription->maxRenderSize.width, contextDescription->maxRenderSize.height, 1, FFX_RESOURCE_FLAGS_NONE},
-
-        {   FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_DEPTH, L"FSR3UPSCALER_DilatedDepth", FFX_RESOURCE_TYPE_TEXTURE2D, (FfxResourceUsage)(FFX_RESOURCE_USAGE_RENDERTARGET | FFX_RESOURCE_USAGE_UAV),
-            FFX_SURFACE_FORMAT_R32_FLOAT, contextDescription->maxRenderSize.width, contextDescription->maxRenderSize.height, 1, FFX_RESOURCE_FLAGS_NONE },
-
-        {   FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_RECONSTRUCTED_PREVIOUS_NEAREST_DEPTH, L"FSR3UPSCALER_ReconstructedPrevNearestDepth", FFX_RESOURCE_TYPE_TEXTURE2D, (FfxResourceUsage)(FFX_RESOURCE_USAGE_RENDERTARGET | FFX_RESOURCE_USAGE_UAV),
-            FFX_SURFACE_FORMAT_R32_UINT, contextDescription->maxRenderSize.width, contextDescription->maxRenderSize.height, 1, FFX_RESOURCE_FLAGS_NONE },
 
         {   FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_ACCUMULATION_1, L"FSR3UPSCALER_Accumulation1", FFX_RESOURCE_TYPE_TEXTURE2D, (FfxResourceUsage)(FFX_RESOURCE_USAGE_RENDERTARGET | FFX_RESOURCE_USAGE_UAV),
             FFX_SURFACE_FORMAT_R8_UNORM, contextDescription->maxRenderSize.width, contextDescription->maxRenderSize.height, 1, FFX_RESOURCE_FLAGS_NONE },
@@ -599,7 +597,7 @@ static FfxErrorCode fsr3upscalerCreate(FfxFsr3UpscalerContext_Private* context, 
         {   FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_SPD_ATOMIC_COUNT, L"FSR3UPSCALER_SpdAtomicCounter", FFX_RESOURCE_TYPE_TEXTURE2D, (FfxResourceUsage)(FFX_RESOURCE_USAGE_UAV),
             FFX_SURFACE_FORMAT_R32_UINT, 1, 1, 1, FFX_RESOURCE_FLAGS_ALIASABLE, sizeof(atomicInitData), &atomicInitData },
 
-        {   FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_REACTIVE_MASKS, L"FSR3UPSCALER_DilatedReactiveMasks", FFX_RESOURCE_TYPE_TEXTURE2D, FFX_RESOURCE_USAGE_UAV,
+        {   FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_REACTIVE_MASKS, L"FSR3UPSCALER_DilatedReactiveMasks", FFX_RESOURCE_TYPE_TEXTURE2D, (FfxResourceUsage)(FFX_RESOURCE_USAGE_UAV),
             FFX_SURFACE_FORMAT_R8G8B8A8_UNORM, contextDescription->maxRenderSize.width, contextDescription->maxRenderSize.height, 1, FFX_RESOURCE_FLAGS_ALIASABLE },
 
         {   FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_LANCZOS_LUT, L"FSR3UPSCALER_LanczosLutData", FFX_RESOURCE_TYPE_TEXTURE2D, FFX_RESOURCE_USAGE_READ_ONLY,
@@ -668,6 +666,9 @@ static FfxErrorCode fsr3upscalerRelease(FfxFsr3UpscalerContext_Private* context)
 
     // Unregister external resources
     context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_INPUT_TRANSPARENCY_AND_COMPOSITION_MASK] = { FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_NULL };
+    context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_RECONSTRUCTED_PREVIOUS_NEAREST_DEPTH]    = { FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_NULL };
+    context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_MOTION_VECTORS]                  = { FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_NULL };
+    context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_DEPTH]                           = { FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_NULL };
     context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_INPUT_OPAQUE_ONLY]                       = { FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_NULL };
     context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_INPUT_COLOR]                             = { FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_NULL };
     context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_INPUT_DEPTH]                             = { FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_NULL };
@@ -754,7 +755,7 @@ static void setupDeviceDepthToViewSpaceDepthParams(FfxFsr3UpscalerContext_Privat
     context->constants.deviceToViewDepth[3] = (1.0f / b);
 }
 
-static void scheduleDispatch(FfxFsr3UpscalerContext_Private* context, const FfxFsr3UpscalerDispatchDescription* params, const FfxPipelineState* pipeline, uint32_t dispatchX, uint32_t dispatchY)
+static void scheduleDispatch(FfxFsr3UpscalerContext_Private* context, const FfxFsr3UpscalerDispatchDescription*, const FfxPipelineState* pipeline, uint32_t dispatchX, uint32_t dispatchY)
 {
     FfxComputeJobDescription jobDescriptor = {};
 
@@ -807,6 +808,26 @@ static void scheduleDispatch(FfxFsr3UpscalerContext_Private* context, const FfxF
     context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &dispatchJob);
 }
 
+FFX_API FfxErrorCode ffxFsr3UpscalerGetSharedResourceDescriptions(FfxFsr3UpscalerContext* context, FfxFsr3UpscalerSharedResourceDescriptions* SharedResources)
+{
+    FFX_RETURN_ON_ERROR(
+        context,
+        FFX_ERROR_INVALID_POINTER);
+    FFX_RETURN_ON_ERROR(
+        SharedResources,
+        FFX_ERROR_INVALID_POINTER);
+
+    FfxFsr3UpscalerContext_Private* contextPrivate = (FfxFsr3UpscalerContext_Private*)(context);
+    SharedResources->dilatedDepth = { FFX_HEAP_TYPE_DEFAULT, { FFX_RESOURCE_TYPE_TEXTURE2D, FFX_SURFACE_FORMAT_R32_FLOAT, contextPrivate->contextDescription.maxRenderSize.width, contextPrivate->contextDescription.maxRenderSize.height, 1, 1, FFX_RESOURCE_FLAGS_NONE, (FfxResourceUsage)(FFX_RESOURCE_USAGE_RENDERTARGET | FFX_RESOURCE_USAGE_UAV) },
+        FFX_RESOURCE_STATE_UNORDERED_ACCESS,0, nullptr, L"FSR3UPSCALER_DilatedDepth", FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_DEPTH };
+    SharedResources->dilatedMotionVectors = { FFX_HEAP_TYPE_DEFAULT, { FFX_RESOURCE_TYPE_TEXTURE2D, FFX_SURFACE_FORMAT_R16G16_FLOAT, contextPrivate->contextDescription.maxRenderSize.width, contextPrivate->contextDescription.maxRenderSize.height, 1, 1, FFX_RESOURCE_FLAGS_NONE, (FfxResourceUsage)(FFX_RESOURCE_USAGE_RENDERTARGET | FFX_RESOURCE_USAGE_UAV) },
+            FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0, nullptr, L"FSR3UPSCALER_DilatedVelocity", FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_MOTION_VECTORS };
+    SharedResources->reconstructedPrevNearestDepth = { FFX_HEAP_TYPE_DEFAULT, { FFX_RESOURCE_TYPE_TEXTURE2D, FFX_SURFACE_FORMAT_R32_UINT, contextPrivate->contextDescription.maxRenderSize.width, contextPrivate->contextDescription.maxRenderSize.height, 1, 1, FFX_RESOURCE_FLAGS_NONE, (FfxResourceUsage)(FFX_RESOURCE_USAGE_UAV) },
+            FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0, nullptr, L"FSR3UPSCALER_ReconstructedPrevNearestDepth", FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_RECONSTRUCTED_PREVIOUS_NEAREST_DEPTH };
+
+    return FFX_OK;
+}
+
 static FfxErrorCode fsr3upscalerDispatch(FfxFsr3UpscalerContext_Private* context, const FfxFsr3UpscalerDispatchDescription* params)
 {
 
@@ -856,6 +877,13 @@ static FfxErrorCode fsr3upscalerDispatch(FfxFsr3UpscalerContext_Private* context
     context->contextDescription.backendInterface.fpRegisterResource(&context->contextDescription.backendInterface, &params->color, context->effectContextId, &context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_INPUT_COLOR]);
     context->contextDescription.backendInterface.fpRegisterResource(&context->contextDescription.backendInterface, &params->depth, context->effectContextId, &context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_INPUT_DEPTH]);
     context->contextDescription.backendInterface.fpRegisterResource(&context->contextDescription.backendInterface, &params->motionVectors, context->effectContextId, &context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_INPUT_MOTION_VECTORS]);
+
+    context->contextDescription.backendInterface.fpRegisterResource(&context->contextDescription.backendInterface, &params->dilatedMotionVectors, context->effectContextId, &context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_MOTION_VECTORS]);
+    context->uavResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_MOTION_VECTORS] = context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_MOTION_VECTORS];
+    context->contextDescription.backendInterface.fpRegisterResource(&context->contextDescription.backendInterface, &params->dilatedDepth, context->effectContextId, &context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_DEPTH]);
+    context->uavResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_DEPTH] = context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_DILATED_DEPTH];
+    context->contextDescription.backendInterface.fpRegisterResource(&context->contextDescription.backendInterface, &params->reconstructedPrevNearestDepth, context->effectContextId, &context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_RECONSTRUCTED_PREVIOUS_NEAREST_DEPTH]);
+    context->uavResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_RECONSTRUCTED_PREVIOUS_NEAREST_DEPTH] = context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_RECONSTRUCTED_PREVIOUS_NEAREST_DEPTH];
 
     // if auto exposure is enabled use the auto exposure SRV, otherwise what the app sends.
     if (context->contextDescription.flags & FFX_FSR3UPSCALER_ENABLE_AUTO_EXPOSURE) {
@@ -1020,7 +1048,7 @@ static FfxErrorCode fsr3upscalerDispatch(FfxFsr3UpscalerContext_Private* context
 
         // Auto exposure always used to track luma changes in locking logic
         {
-            const float clearValuesExposure[]{ -1.f, 1e8f, 0.f, 0.f };
+            const float clearValuesExposure[]{ -1.f, 1.f, 0.f, 0.f };
             memcpy(clearJob.clearJobDescriptor.color, clearValuesExposure, 4 * sizeof(float));
             clearJob.clearJobDescriptor.target = context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_FRAME_INFO];
             context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &clearJob);
@@ -1037,6 +1065,16 @@ static FfxErrorCode fsr3upscalerDispatch(FfxFsr3UpscalerContext_Private* context
         clearJob.clearJobDescriptor.target = context->srvResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_RECONSTRUCTED_PREVIOUS_NEAREST_DEPTH];
         context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &clearJob);
     }
+
+    // Suggested by Enduring to resolve issues with running FSR3 on console via the RHI backend in the plugin as this resource won't be cleared to 0 by default.
+	{
+		FfxGpuJobDescription clearJob = { FFX_GPU_JOB_CLEAR_FLOAT };
+		const float clearValuesToZeroFloat[]{ 0.f, 0.f, 0.f, 0.f };
+		memcpy(clearJob.clearJobDescriptor.color, clearValuesToZeroFloat, 4 * sizeof(float));
+		clearJob.clearJobDescriptor.target = context->uavResources[FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_SPD_ATOMIC_COUNT];
+		context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &clearJob);
+	}
+
     // Auto exposure
     uint32_t dispatchThreadGroupCountXY[2];
     uint32_t workGroupOffset[2];
@@ -1339,5 +1377,30 @@ FfxErrorCode ffxFsr3UpscalerContextGenerateReactiveMask(FfxFsr3UpscalerContext* 
     // release dynamic resources
     contextPrivate->contextDescription.backendInterface.fpUnregisterResources(&contextPrivate->contextDescription.backendInterface, commandList, contextPrivate->effectContextId);
 
+    return FFX_OK;
+}
+
+FFX_API FfxErrorCode ffxFsr3UpscalerSetConstant(FfxFsr3UpscalerContext* context, FfxFsr3UpscalerConfigureKey key, void* valuePtr)
+{
+    FFX_RETURN_ON_ERROR(
+        context,
+        FFX_ERROR_INVALID_POINTER);
+
+    FfxFsr3UpscalerContext_Private* contextPrivate = (FfxFsr3UpscalerContext_Private*)(context);
+    switch (key)
+    {
+        case FFX_FSR3UPSCALER_CONFIGURE_UPSCALE_KEY_FVELOCITYFACTOR:
+        {
+            float fValue = 1.0f;
+            if (valuePtr != nullptr)
+            {
+                fValue = *(static_cast<float*>(valuePtr));
+            }
+            contextPrivate->constants.velocityFactor = ffxSaturate(fValue);
+            break;
+        }
+        default:
+            return FFX_ERROR_INVALID_ENUM;
+    }
     return FFX_OK;
 }

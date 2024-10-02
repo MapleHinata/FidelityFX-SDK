@@ -101,6 +101,12 @@ if(FFX_VS_VERSION STREQUAL 2015 OR FFX_VS_VERSION STREQUAL 2017)
     set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION "10.0.18362.0")
 endif()
 
+if (FFX_FSR3)
+	option(FFX_FSR3UPSCALER "Build FFX FSR3 Upscaler API" ON)
+	option(FFX_FI "Build FFX Frame Interpolation API" ON)
+	option(FFX_OF "Build FFX Optical Flow API" ON)
+endif()
+
 # Setup common variables
 set(FFX_SC_EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/tools/binary_store/FidelityFX_SC.exe)
 set(FFX_INCLUDE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include)

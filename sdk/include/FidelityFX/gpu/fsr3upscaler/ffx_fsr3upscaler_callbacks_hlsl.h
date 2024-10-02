@@ -75,6 +75,8 @@ cbuffer cbFSR3Upscaler : FFX_FSR3UPSCALER_DECLARE_CB(FSR3UPSCALER_BIND_CB_FSR3UP
     FfxFloat32    fDeltaPreExposure;
     FfxFloat32    fViewSpaceToMetersFactor;
     FfxFloat32    fFrameIndex;
+
+    FfxFloat32    fVelocityFactor;
 };
 
 #define FFX_FSR3UPSCALER_CONSTANT_BUFFER_1_SIZE (sizeof(cbFSR3Upscaler) / 4)  // Number of 32-bit values. This must be kept in sync with the cbFSR3Upscaler size.
@@ -168,6 +170,11 @@ FfxFloat32 ViewSpaceToMetersFactor()
 FfxFloat32 FrameIndex()
 {
     return fFrameIndex;
+}
+
+FfxFloat32 VelocityFactor()
+{
+    return fVelocityFactor;
 }
 
 #endif // #if defined(FSR3UPSCALER_BIND_CB_FSR3UPSCALER)
@@ -771,9 +778,15 @@ FfxFloat32 Exposure()
 {
     FfxFloat32 exposure = r_input_exposure[FfxUInt32x2(0, 0)].x;
 
+#if defined(__XBOX_SCARLETT)
+    if (exposure < 0.000030517578/** 2^15 */) {
+        exposure = 1.0f;
+    }
+#else
     if (exposure == 0.0f) {
         exposure = 1.0f;
     }
+#endif // #if defined(__XBOX_SCARLETT)
 
     return exposure;
 }
@@ -822,7 +835,7 @@ FfxFloat32x3 LoadOpaqueOnly(FFX_PARAMETER_IN FFX_MIN16_I2 iPxPos)
 #endif
 
 #if defined(FSR3UPSCALER_BIND_SRV_PREV_PRE_ALPHA_COLOR)
-Texture2D<float3> r_input_prev_color_pre_alpha : FFX_FSR3UPSCALER_DECLARE_SRV(FSR3UPSCALER_BIND_SRV_PREV_PRE_ALPHA_COLOR);
+Texture2D<float3> r_input_prev_color_pre_alpha : FFX_FSR3UPSCALER_DECLARE_SRV(FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_PREV_PRE_ALPHA_COLOR);
 
 FfxFloat32x3 LoadPrevPreAlpha(FFX_PARAMETER_IN FFX_MIN16_I2 iPxPos)
 {
@@ -831,7 +844,7 @@ FfxFloat32x3 LoadPrevPreAlpha(FFX_PARAMETER_IN FFX_MIN16_I2 iPxPos)
 #endif
 
 #if defined(FSR3UPSCALER_BIND_SRV_PREV_POST_ALPHA_COLOR)
-Texture2D<float3> r_input_prev_color_post_alpha : FFX_FSR3UPSCALER_DECLARE_SRV(FSR3UPSCALER_BIND_SRV_PREV_POST_ALPHA_COLOR);
+Texture2D<float3> r_input_prev_color_post_alpha : FFX_FSR3UPSCALER_DECLARE_SRV(FFX_FSR3UPSCALER_RESOURCE_IDENTIFIER_PREV_POST_ALPHA_COLOR);
 
 FfxFloat32x3 LoadPrevPostAlpha(FFX_PARAMETER_IN FFX_MIN16_I2 iPxPos)
 {

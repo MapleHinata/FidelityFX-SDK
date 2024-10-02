@@ -1,16 +1,17 @@
 // This file is part of the FidelityFX SDK.
-// 
-// Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+//
+// Copyright (C) 2024 Advanced Micro Devices, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
+// of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// to use, copy, modify, merge, publish, distribute, sublicense, and /or sell
 // copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
+// furnished to do so, subject to the following conditions :
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,12 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-
 #include <algorithm>    // for max used inside SPD CPU code.
 #include <cmath>        // for fabs, abs, sinf, sqrt, etc.
 #include <string>       // for memset
 #include <cfloat>       // for FLT_EPSILON
 #include "FidelityFX/host/ffx_opticalflow.h"
+
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma clang diagnostic ignored "-Wsign-compare"
+#endif
 
 #define FFX_CPU
 #include <FidelityFX/gpu/ffx_core.h>
@@ -153,7 +158,7 @@ static FfxErrorCode patchResourceBindings(FfxPipelineState* inoutPipeline)
     return FFX_OK;
 }
 
-static uint32_t getPipelinePermutationFlags(uint32_t contextFlags, FfxPass passId, bool fp16, bool force64, bool useLut)
+static uint32_t getPipelinePermutationFlags(uint32_t, FfxPass, bool fp16, bool force64, bool)
 {
     uint32_t flags = 0;
     flags |= (force64) ? OPTICALFLOW_SHADER_PERMUTATION_FORCE_WAVE64 : 0;
@@ -217,15 +222,14 @@ static FfxErrorCode createPipelineStates(FfxOpticalflowContext_Private* context)
         return FFX_OK;
     };
 
-#define EAN(pass) pass, L#pass
-    CreateComputePipeline(EAN(FFX_OPTICALFLOW_PASS_GENERATE_OPTICAL_FLOW_INPUT_PYRAMID), &context->pipelineGenerateOpticalFlowInputPyramid);
+    CreateComputePipeline(FFX_OPTICALFLOW_PASS_GENERATE_OPTICAL_FLOW_INPUT_PYRAMID, L"Opticalflow_InputPyramid", & context->pipelineGenerateOpticalFlowInputPyramid);
     pipelineDescription.rootConstantBufferCount = 1;
-    CreateComputePipeline(EAN(FFX_OPTICALFLOW_PASS_PREPARE_LUMA), &context->pipelinePrepareLuma);
-    CreateComputePipeline(EAN(FFX_OPTICALFLOW_PASS_GENERATE_SCD_HISTOGRAM), &context->pipelineGenerateSCDHistogram);
-    CreateComputePipeline(EAN(FFX_OPTICALFLOW_PASS_COMPUTE_SCD_DIVERGENCE), &context->pipelineComputeSCDDivergence);
-    CreateComputePipeline(EAN(FFX_OPTICALFLOW_PASS_COMPUTE_OPTICAL_FLOW_ADVANCED_V5), &context->pipelineComputeOpticalFlowAdvancedV5);
-    CreateComputePipeline(EAN(FFX_OPTICALFLOW_PASS_FILTER_OPTICAL_FLOW_V5), &context->pipelineFilterOpticalFlowV5);
-    CreateComputePipeline(EAN(FFX_OPTICALFLOW_PASS_SCALE_OPTICAL_FLOW_ADVANCED_V5), &context->pipelineScaleOpticalFlowAdvancedV5);
+    CreateComputePipeline(FFX_OPTICALFLOW_PASS_PREPARE_LUMA, L"Opticalflow_Luma", &context->pipelinePrepareLuma);
+    CreateComputePipeline(FFX_OPTICALFLOW_PASS_GENERATE_SCD_HISTOGRAM, L"Opticalflow_SCD_Histogram", &context->pipelineGenerateSCDHistogram);
+    CreateComputePipeline(FFX_OPTICALFLOW_PASS_COMPUTE_SCD_DIVERGENCE, L"Opticalflow_SCD_Divergence", &context->pipelineComputeSCDDivergence);
+    CreateComputePipeline(FFX_OPTICALFLOW_PASS_COMPUTE_OPTICAL_FLOW_ADVANCED_V5, L"Opticalflow_Search", &context->pipelineComputeOpticalFlowAdvancedV5);
+    CreateComputePipeline(FFX_OPTICALFLOW_PASS_FILTER_OPTICAL_FLOW_V5, L"Opticalflow_Filter", &context->pipelineFilterOpticalFlowV5);
+    CreateComputePipeline(FFX_OPTICALFLOW_PASS_SCALE_OPTICAL_FLOW_ADVANCED_V5, L"Opticalflow_Upscale", &context->pipelineScaleOpticalFlowAdvancedV5);
 
     return FFX_OK;
 }
@@ -292,7 +296,6 @@ static FfxErrorCode opticalflowCreate(FfxOpticalflowContext_Private* context, co
 
     FfxDimensions2D opticalFlowInputTextureSize = context->contextDescription.resolution;
 
-    uint32_t atomicInitData = 0U;
     const FfxResourceType texture1dResourceType = (context->contextDescription.flags & FFX_OPTICALFLOW_ENABLE_TEXTURE1D_USAGE) ? FFX_RESOURCE_TYPE_TEXTURE1D : FFX_RESOURCE_TYPE_TEXTURE2D;
 
     uint32_t minBlockSize = 8;
@@ -416,7 +419,7 @@ static FfxErrorCode opticalflowCreate(FfxOpticalflowContext_Private* context, co
             resourceType, currentSurfaceDescription->format,
             currentSurfaceDescription->width, currentSurfaceDescription->height, 1,
             currentSurfaceDescription->mipCount, FFX_RESOURCE_FLAGS_NONE, currentSurfaceDescription->usage };
-        const FfxResourceStates initialState = FFX_RESOURCE_STATE_COMMON;
+        const FfxResourceStates initialState = FFX_RESOURCE_STATE_UNORDERED_ACCESS;
         const FfxCreateResourceDescription createResourceDescription = {
             FFX_HEAP_TYPE_DEFAULT, resourceDescription, initialState, currentSurfaceDescription->initDataSize, currentSurfaceDescription->initData,
             currentSurfaceDescription->name, currentSurfaceDescription->id };
@@ -462,7 +465,7 @@ static FfxErrorCode opticalflowRelease(FfxOpticalflowContext_Private* context)
     return FFX_OK;
 }
 
-static void scheduleDispatch(FfxOpticalflowContext_Private* context, const FfxPipelineState* pipeline, const std::string& pipelineName, uint32_t dispatchX, uint32_t dispatchY, uint32_t dispatchZ = 1)
+static void scheduleDispatch(FfxOpticalflowContext_Private* context, const FfxPipelineState* pipeline, const wchar_t* pipelineName, uint32_t dispatchX, uint32_t dispatchY, uint32_t dispatchZ = 1)
 {
     FfxComputeJobDescription jobDescriptor = {};
 
@@ -471,11 +474,12 @@ static void scheduleDispatch(FfxOpticalflowContext_Private* context, const FfxPi
         const uint32_t bindingIdentifier = pipeline->srvTextureBindings[currentShaderResourceViewIndex].resourceIdentifier;
         const FfxResourceInternal currentResource = context->srvBindings[bindingIdentifier];
         jobDescriptor.srvTextures[currentShaderResourceViewIndex] = currentResource;
+#ifdef FFX_DEBUG
         wcscpy_s(jobDescriptor.srvTextureNames[currentShaderResourceViewIndex], pipeline->srvTextureBindings[currentShaderResourceViewIndex].name);
+#endif
 
         FFX_ASSERT(bindingIdentifier != FFX_OF_BINDING_IDENTIFIER_NULL);
         FFX_ASSERT(bindingIdentifier < FFX_OF_BINDING_IDENTIFIER_COUNT);
-        FFX_ASSERT(currentResource.internalIndex != 0);
     }
 
     for (uint32_t currentUnorderedAccessViewIndex = 0; currentUnorderedAccessViewIndex < pipeline->uavTextureCount; ++currentUnorderedAccessViewIndex) {
@@ -484,11 +488,12 @@ static void scheduleDispatch(FfxOpticalflowContext_Private* context, const FfxPi
         const FfxResourceInternal currentResource = context->uavBindings[bindingIdentifier];
         jobDescriptor.uavTextures[currentUnorderedAccessViewIndex] = currentResource;
         jobDescriptor.uavTextureMips[currentUnorderedAccessViewIndex] = 0;
+#ifdef FFX_DEBUG
         wcscpy_s(jobDescriptor.uavTextureNames[currentUnorderedAccessViewIndex], pipeline->uavTextureBindings[currentUnorderedAccessViewIndex].name);
+#endif
 
         FFX_ASSERT(bindingIdentifier != FFX_OF_BINDING_IDENTIFIER_NULL);
         FFX_ASSERT(bindingIdentifier < FFX_OF_BINDING_IDENTIFIER_COUNT);
-        FFX_ASSERT(currentResource.internalIndex != 0);
     }
     
     jobDescriptor.dimensions[0] = dispatchX;
@@ -497,7 +502,9 @@ static void scheduleDispatch(FfxOpticalflowContext_Private* context, const FfxPi
     jobDescriptor.pipeline = *pipeline;
 
     for (uint32_t currentRootConstantIndex = 0; currentRootConstantIndex < pipeline->constCount; ++currentRootConstantIndex) {
+#ifdef FFX_DEBUG
         wcscpy_s(jobDescriptor.cbNames[currentRootConstantIndex], pipeline->constantBufferBindings[currentRootConstantIndex].name);
+#endif
         jobDescriptor.cbs[currentRootConstantIndex] = globalOpticalflowConstantBuffers[pipeline->constantBufferBindings[currentRootConstantIndex].resourceIdentifier];
     }
 
@@ -657,14 +664,14 @@ static FfxErrorCode dispatch(FfxOpticalflowContext_Private* context, const FfxOp
             uint32_t threadPixelsY = 2;
             int32_t dispatchX = ((context->contextDescription.resolution.width + (threadPixelsX - 1)) / threadPixelsX + (threadGroupSizeX - 1)) / threadGroupSizeX;
             int32_t dispatchY = ((context->contextDescription.resolution.height + (threadPixelsY - 1)) / threadPixelsY + (threadGroupSizeY - 1)) / threadGroupSizeY;
-            std::string pipelineName = "OF PrepareLuma";
-            scheduleDispatch(context, &context->pipelinePrepareLuma, pipelineName, dispatchX, dispatchY);
+            scheduleDispatch(context, &context->pipelinePrepareLuma, L"OF PrepareLuma", dispatchX, dispatchY);
         }
 
         {
             {
-                std::string pipelineName = "OF GenerateOpticalFlowInputPyramid";
-                scheduleDispatch(context, &context->pipelineGenerateOpticalFlowInputPyramid, pipelineName,
+                scheduleDispatch(context,
+                                 &context->pipelineGenerateOpticalFlowInputPyramid,
+                                 L"OF GenerateOpticalFlowInputPyramid",
                                  threadGroupSizeOpticalFlowInputPyramid[0],
                                  threadGroupSizeOpticalFlowInputPyramid[1]
                 );
@@ -679,14 +686,12 @@ static FfxErrorCode dispatch(FfxOpticalflowContext_Private* context, const FfxOp
                     const uint32_t dispatchX = (strataWidth + threadGroupSizeX - 1) / threadGroupSizeX;
                     const uint32_t dispatchY = 16;
                     const uint32_t dispatchZ = HistogramsPerDim * HistogramsPerDim;
-                    std::string pipelineName = "OF GenerateSCDHistogram";
-                    scheduleDispatch(context, &context->pipelineGenerateSCDHistogram, pipelineName, dispatchX, dispatchY, dispatchZ);
+                    scheduleDispatch(context, &context->pipelineGenerateSCDHistogram, L"OF GenerateSCDHistogram", dispatchX, dispatchY, dispatchZ);
                 }
                 {
                     const uint32_t dispatchX = HistogramsPerDim * HistogramsPerDim;
                     const uint32_t dispatchY = HistogramShifts;
-                    std::string pipelineName = "OF ComputeSCDDivergence";
-                    scheduleDispatch(context, &context->pipelineComputeSCDDivergence, pipelineName, dispatchX, dispatchY);
+                    scheduleDispatch(context, &context->pipelineComputeSCDDivergence, L"OF ComputeSCDDivergence", dispatchX, dispatchY);
                 }
             }
 
@@ -725,17 +730,16 @@ static FfxErrorCode dispatch(FfxOpticalflowContext_Private* context, const FfxOp
                 {
                     const FfxUInt32 inputLumaWidth = ffxMax(context->contextDescription.resolution.width >> level, 1);
                     const FfxUInt32 inputLumaHeight = ffxMax(context->contextDescription.resolution.height >> level, 1);
-                    std::string pipelineName = "OF " + std::to_string(level) + " Search";
+                    std::wstring pipelineName = L"OF " + std::to_wstring(level) + L" Search";
 
                     {
                         uint32_t threadPixels = 4;
                         FFX_ASSERT(opticalFlowBlockSize >= threadPixels);
-                        uint32_t threadGroupSizeX = 4;
                         uint32_t threadGroupSizeY = 16;
                         uint32_t threadGroupSize = 64;
                         uint32_t dispatchX = ((inputLumaWidth + threadPixels - 1) / threadPixels * threadGroupSizeY + (threadGroupSize - 1)) / threadGroupSize;
                         uint32_t dispatchY = (inputLumaHeight + (threadGroupSizeY - 1)) / threadGroupSizeY;
-                        scheduleDispatch(context, &context->pipelineComputeOpticalFlowAdvancedV5, pipelineName, dispatchX, dispatchY);
+                        scheduleDispatch(context, &context->pipelineComputeOpticalFlowAdvancedV5, pipelineName.c_str(), dispatchX, dispatchY);
                     }
                 }
 
@@ -757,10 +761,10 @@ static FfxErrorCode dispatch(FfxOpticalflowContext_Private* context, const FfxOp
                     const uint32_t threadGroupSizeY = 4;
                     const uint32_t dispatchX = (levelWidth + threadGroupSizeX - 1) / threadGroupSizeX;
                     const uint32_t dispatchY = (levelHeight + threadGroupSizeY - 1) / threadGroupSizeY;
-                    std::string pipelineName = "OF " + std::to_string(level) + " Filter";
+                    std::wstring pipelineName = L"OF " + std::to_wstring(level) + L" Filter";
 
                     {
-                        scheduleDispatch(context, &context->pipelineFilterOpticalFlowV5, pipelineName, dispatchX, dispatchY);
+                        scheduleDispatch(context, &context->pipelineFilterOpticalFlowV5, pipelineName.c_str(), dispatchX, dispatchY);
                     }
                 }
 
@@ -786,16 +790,61 @@ static FfxErrorCode dispatch(FfxOpticalflowContext_Private* context, const FfxOp
                     const uint32_t dispatchX = (nextLevelWidth + threadGroupSizeX - 1) / threadGroupSizeX;
                     const uint32_t dispatchY = (nextLevelHeight + threadGroupSizeY - 1) / threadGroupSizeY;
                     const uint32_t dispatchZ = 1;
-                    std::string pipelineName = "OF " + std::to_string(level) + " Scale";
+                    std::wstring pipelineName = L"OF " + std::to_wstring(level) + L" Scale";
 
                     {
                         const uint32_t dispatchX = (nextLevelWidth + 3) / 4;
                         const uint32_t dispatchY = (nextLevelHeight + 3) / 4;
-                        scheduleDispatch(context, &context->pipelineScaleOpticalFlowAdvancedV5, pipelineName, dispatchX, dispatchY, dispatchZ);
+                        scheduleDispatch(context, &context->pipelineScaleOpticalFlowAdvancedV5, pipelineName.c_str(), dispatchX, dispatchY, dispatchZ);
                     }
+
+                    {
+                        FfxGpuJobDescription barrierJob = {FFX_GPU_JOB_BARRIER};
+                        barrierJob.barrierDescriptor = { context->srvBindings[FFX_OF_BINDING_IDENTIFIER_OPTICAL_FLOW], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+                        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+                    }
+                }
+
+                {
+                    FfxGpuJobDescription barrierJob = {FFX_GPU_JOB_BARRIER};
+                    barrierJob.barrierDescriptor = { context->srvBindings[FFX_OF_BINDING_IDENTIFIER_OPTICAL_FLOW_PREVIOUS], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+                    context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
                 }
             }
         }
+    }
+
+    {
+        FfxGpuJobDescription barrierJob = {FFX_GPU_JOB_BARRIER};
+
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_1], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_1_LEVEL_1], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_1_LEVEL_2], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_1_LEVEL_3], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_1_LEVEL_4], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_1_LEVEL_5], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_1_LEVEL_6], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_2], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_2_LEVEL_1], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_2_LEVEL_2], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_2_LEVEL_3], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_2_LEVEL_4], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_2_LEVEL_5], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
+        barrierJob.barrierDescriptor = { context->resources[FFX_OF_RESOURCE_IDENTIFIER_OPTICAL_FLOW_INPUT_2_LEVEL_6], FFX_BARRIER_TYPE_TRANSITION, FFX_RESOURCE_STATE_COMPUTE_READ, FFX_RESOURCE_STATE_UNORDERED_ACCESS, 0};
+        context->contextDescription.backendInterface.fpScheduleGpuJob(&context->contextDescription.backendInterface, &barrierJob);
     }
 
     context->resourceFrameIndex = (context->resourceFrameIndex + 1) % FFX_OPTICALFLOW_MAX_QUEUED_FRAMES;

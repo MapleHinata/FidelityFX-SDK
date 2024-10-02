@@ -43,7 +43,7 @@
 /// FidelityFX Super Resolution 0 patch version.
 ///
 /// @ingroup FSR3
-#define FFX_FSR3_VERSION_PATCH      (0)
+#define FFX_FSR3_VERSION_PATCH      (1)
 
 /// FidelityFX Super Resolution 3 context count
 ///
@@ -55,7 +55,7 @@
 /// The size of the context specified in 32bit values.
 ///
 /// @ingroup FSR3
-#define FFX_FSR3_CONTEXT_SIZE (16536)
+#define FFX_FSR3_CONTEXT_SIZE (FFX_FSR3UPSCALER_CONTEXT_SIZE + FFX_OPTICALFLOW_CONTEXT_SIZE + FFX_FRAMEINTERPOLATION_CONTEXT_SIZE + FFX_SDK_DEFAULT_CONTEXT_SIZE)
 
 #if defined(__cplusplus)
 extern "C" {
@@ -155,6 +155,7 @@ typedef struct FfxFsr3ContextDescription {
     FfxDimensions2D             maxRenderSize;                      ///< The maximum size that rendering will be performed at.
     FfxDimensions2D             maxUpscaleSize;                  ///< The size of the presentation resolution targeted by the upscaling process.
     FfxDimensions2D             displaySize;                        ///< The size of the presentation resolution targeted by the frame interpolation process.
+    FfxInterface                backendInterfaceSharedResources;    ///< A set of pointers to the backend implementation for FidelityFX SDK
     FfxInterface                backendInterfaceUpscaling;          ///< A set of pointers to the backend implementation for FidelityFX SDK
     FfxInterface                backendInterfaceFrameInterpolation; ///< A set of pointers to the backend implementation for FidelityFX SDK
     FfxFsr3UpscalerMessage      fpMessage;                          ///< A pointer to a function that can receive messages from the runtime.
@@ -190,7 +191,26 @@ typedef struct FfxFsr3DispatchUpscaleDescription {
     float                       cameraFovAngleVertical;             ///< The camera angle field of view in the vertical direction (expressed in radians).
     float                       viewSpaceToMetersFactor;            ///< The scale factor to convert view space units to meters
     uint32_t                    flags;                              ///< combination of FfxFsr3UpscalingFlags
+    uint64_t                    frameID;
 } FfxFsr3DispatchUpscaleDescription;
+
+typedef struct FfxFsr3DispatchFrameGenerationPrepareDescription
+{
+    FfxCommandList              commandList;                        ///< The <c><i>FfxCommandList</i></c> to record FSR2 rendering commands into.
+    FfxResource                 depth;                              ///< A <c><i>FfxResource</i></c> containing 32bit depth values for the current frame (at render resolution).
+    FfxResource                 motionVectors;                      ///< A <c><i>FfxResource</i></c> containing 2-dimensional motion vectors (at render resolution if <c><i>FFX_FSR2_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS</i></c> is not set).
+    FfxFloatCoords2D            jitterOffset;                       ///< The subpixel jitter offset applied to the camera.
+    FfxFloatCoords2D            motionVectorScale;                  ///< The scale factor to apply to motion vectors.
+    FfxDimensions2D             renderSize;                         ///< The resolution that was used for rendering the input resources.
+    
+    float                       frameTimeDelta;
+    float                       cameraNear;
+    float                       cameraFar;
+    float                       viewSpaceToMetersFactor;
+    float                       cameraFovAngleVertical;
+
+    uint64_t                    frameID;
+} FfxFsr3DispatchFrameGenerationPrepareDescription;
 
 FFX_API FfxErrorCode ffxFsr3DispatchFrameGeneration(const FfxFrameGenerationDispatchDescription* desc);
 
@@ -224,10 +244,7 @@ typedef struct FfxFsr3GenerateReactiveDescription {
 /// @ingroup FSR3
 typedef struct FfxFsr3Context
 {
-    uint32_t data[  FFX_FSR3UPSCALER_CONTEXT_SIZE 
-                  + FFX_OPTICALFLOW_CONTEXT_SIZE 
-                  + FFX_FRAMEINTERPOLATION_CONTEXT_SIZE
-                  + (16536)];  ///< An opaque set of <c>uint32_t</c> which contain the data for the context.
+    uint32_t data[FFX_FSR3_CONTEXT_SIZE];  ///< An opaque set of <c>uint32_t</c> which contain the data for the context.
 } FfxFsr3Context;
 
 /// Create a FidelityFX Super Resolution 3 context from the parameters
@@ -317,6 +334,7 @@ FFX_API FfxErrorCode ffxFsr3ContextCreate(FfxFsr3Context* context, FfxFsr3Contex
 ///
 /// @ingroup FSR3
 FFX_API FfxErrorCode ffxFsr3ContextDispatchUpscale(FfxFsr3Context* context, const FfxFsr3DispatchUpscaleDescription* dispatchParams);
+FFX_API FfxErrorCode ffxFsr3ContextDispatchFrameGenerationPrepare(FfxFsr3Context* context, const FfxFsr3DispatchFrameGenerationPrepareDescription* dispatchParams);
 
 FFX_API FfxErrorCode ffxFsr3SkipPresent(FfxFsr3Context* context);
 

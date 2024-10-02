@@ -923,13 +923,15 @@ typedef struct FfxPresentCallbackDescription
 } FfxPresentCallbackDescription;
 
 typedef struct FfxFrameGenerationDispatchDescription {
-    FfxCommandList              commandList;
-    FfxResource                 presentColor;
-    FfxResource                 outputs[4];
-    uint32_t                    numInterpolatedFrames;
-    bool                        reset;
-    FfxBackbufferTransferFunction backBufferTransferFunction;
-    float                       minMaxLuminance[2];
+    FfxCommandList                  commandList;                    ///< The command list on which to register render commands
+    FfxResource                     presentColor;                   ///< The current presentation color, this will be used as interpolation source data.
+    FfxResource                     outputs[4];                     ///< Interpolation destination targets (1 for each frame in numInterpolatedFrames)
+    uint32_t                        numInterpolatedFrames;          ///< The number of frames to interpolate from the passed in color target
+    bool                            reset;                          ///< A boolean value which when set to true, indicates the camera has moved discontinuously.
+    FfxBackbufferTransferFunction   backBufferTransferFunction;     ///< The transfer function use to convert interpolation source color data to linear RGB.
+    float                           minMaxLuminance[2];             ///< Min and max luminance values, used when converting HDR colors to linear RGB
+    FfxRect2D                       interpolationRect;              ///< The area of the backbuffer that should be used for interpolation in case only a part of the screen is used e.g. due to movie bars
+    uint64_t                        frameID;
 } FfxFrameGenerationDispatchDescription;
 
 #ifdef __cplusplus
