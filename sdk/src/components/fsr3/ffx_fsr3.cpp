@@ -164,10 +164,13 @@ FfxErrorCode ffxFsr3ContextCreate(FfxFsr3Context* context, FfxFsr3ContextDescrip
 
         FfxFrameInterpolationContextDescription fiDescription = {};
         fiDescription.backendInterface  = contextDescription->backendInterfaceFrameInterpolation;
+        fiDescription.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS) ? FFX_FRAMEINTERPOLATION_ENABLE_DISPLAY_RESOLUTION_MOTION_VECTORS : 0;
+        fiDescription.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_MOTION_VECTORS_JITTER_CANCELLATION) ? FFX_FRAMEINTERPOLATION_ENABLE_JITTER_MOTION_VECTORS : 0;
         fiDescription.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_DEPTH_INVERTED) ? FFX_FRAMEINTERPOLATION_ENABLE_DEPTH_INVERTED : 0;
         fiDescription.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_DEPTH_INFINITE) ? FFX_FRAMEINTERPOLATION_ENABLE_DEPTH_INFINITE : 0;
         fiDescription.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_HIGH_DYNAMIC_RANGE) ? FFX_FRAMEINTERPOLATION_ENABLE_HDR_COLOR_INPUT : 0;
         fiDescription.flags |= (contextDescription->flags & FFX_FSR3_ENABLE_SDR_UPSCALE_HDR_FINALOUTPUT) ? FFX_FRAMEINTERPOLATION_ENABLE_HDR_COLOR_INPUT : 0;
+        fiDescription.flags |= contextPrivate->asyncWorkloadSupported ? FFX_FRAMEINTERPOLATION_ENABLE_ASYNC_SUPPORT : 0;
         fiDescription.maxRenderSize = contextDescription->maxRenderSize;
         fiDescription.displaySize      = contextDescription->displaySize;
         fiDescription.backBufferFormat = contextDescription->backBufferFormat;
